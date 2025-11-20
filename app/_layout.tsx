@@ -20,14 +20,14 @@ function useProtectedRoute(user: any, isLoading: boolean) {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === 'auth';
-    const inTabsGroup = segments[0] === '(tabs)';
+    const inDrawerGroup = segments[0] === '(drawer)';
 
-    if (!user && inTabsGroup) {
-      // Redirect ke login jika tidak ada user dan mencoba akses tabs
+    if (!user && inDrawerGroup) {
+      // Redirect ke login jika tidak ada user dan mencoba akses drawer
       router.replace('/auth/login');
     } else if (user && inAuthGroup) {
-      // Redirect ke tabs jika sudah login dan berada di auth
-      router.replace('/(tabs)');
+      // Redirect ke drawer jika sudah login dan berada di auth
+      router.replace('/(drawer)');
     }
   }, [user, segments, isLoading]);
 }
@@ -54,7 +54,7 @@ export default function RootLayout() {
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="auth/login" options={{ headerShown: false }} />
           <Stack.Screen name="auth/register" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal', headerShown: true }} />
         </Stack>
       )}
