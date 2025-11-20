@@ -28,14 +28,6 @@ function CustomDrawerContent(props: any) {
         focused={pathname === '/(drawer)' || pathname === '/'}
       />
 
-      <DrawerItem
-        label="Explore"
-        icon={({ color }) => <MaterialCommunityIcons size={28} name="compass" color={color} />}
-        onPress={() => router.push('/(drawer)/explore')}
-        activeTintColor={activeColor}
-        focused={pathname === '/(drawer)/explore'}
-      />
-
       {/* Category Dropdown */}
       <TouchableOpacity style={styles.dropdownHeader} onPress={() => setCategoryExpanded(!categoryExpanded)}>
         <View style={styles.dropdownHeaderContent}>
@@ -130,14 +122,6 @@ export default function DrawerLayout() {
             title: 'Home',
             drawerLabel: 'Home',
             drawerIcon: ({ color }) => <MaterialCommunityIcons size={28} name="home" color={color} />,
-          }}
-        />
-        <Drawer.Screen
-          name="explore"
-          options={{
-            title: 'Explore',
-            drawerLabel: 'Explore',
-            drawerIcon: ({ color }) => <MaterialCommunityIcons size={28} name="compass" color={color} />,
           }}
         />
         <Drawer.Screen
