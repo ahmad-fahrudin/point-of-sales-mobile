@@ -3,6 +3,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
+import Toast from 'react-native-toast-message';
 
 import { auth } from '@/config/firebase';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -59,6 +60,7 @@ export default function RootLayout() {
         </Stack>
       )}
       <StatusBar style="auto" />
+      <Toast />
     </ThemeProvider>
   );
 }
