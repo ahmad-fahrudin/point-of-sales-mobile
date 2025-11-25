@@ -7,13 +7,15 @@ import { Button } from './button';
 interface ImagePickerProps {
   value?: string;
   onValueChange?: (uri: string) => void;
-  onPickImage?: (fromCamera: boolean) => Promise<void>;
+  onPickImage?: (fromCamera: boolean) => Promise<string | undefined>;
   label?: string;
   error?: string;
   disabled?: boolean;
 }
 
 export function ImagePicker({ value, onValueChange, onPickImage, label, error, disabled = false }: ImagePickerProps) {
+  console.log('ImagePicker rendered with value:', value);
+  
   const borderColor = useThemeColor({ light: '#e0e0e0', dark: '#444' }, 'text');
   const backgroundColor = useThemeColor({ light: '#fff', dark: '#1c1c1c' }, 'background');
   const errorBorderColor = useThemeColor({ light: '#f44336', dark: '#ef5350' }, 'text');
@@ -42,7 +44,13 @@ export function ImagePicker({ value, onValueChange, onPickImage, label, error, d
       <View style={[styles.imagePickerContainer, { backgroundColor: cardBg }]}>
         {value ? (
           <View style={styles.imagePreviewContainer}>
-            <Image source={{ uri: value }} style={styles.imagePreview} resizeMode="cover" />
+            <Image 
+              source={{ uri: value }} 
+              style={styles.imagePreview} 
+              resizeMode="cover"
+              onError={(error) => console.log('Image load error:', error.nativeEvent.error)}
+              onLoad={() => console.log('Image loaded successfully')}
+            />
             <View style={styles.imageOverlay}>
               <Pressable
                 style={styles.removeImageButton}

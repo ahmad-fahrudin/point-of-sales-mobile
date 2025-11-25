@@ -41,6 +41,8 @@ export default function EditProductScreen() {
   // Update form when product data is loaded
   useEffect(() => {
     if (product) {
+      console.log('Product loaded:', product);
+      console.log('Image path:', product.image_path);
       reset({
         name: product.name,
         categoryId: product.categoryId,
@@ -49,8 +51,8 @@ export default function EditProductScreen() {
         stock: product.stock,
         image_path: product.image_path,
       });
-      setImageUri(product.image_path);
-      setOriginalImagePath(product.image_path);
+      setImageUri(product.image_path || '');
+      setOriginalImagePath(product.image_path || '');
     }
   }, [product, reset]);
 
@@ -68,61 +70,87 @@ export default function EditProductScreen() {
   }, [productError, productLoading]);
 
   const handlePickImage = async (fromCamera: boolean = false) => {
-    const result = await productService.pickImage(fromCamera);
+    try {
+      const result = await productService.pickImage(fromCamera);
 
-    if (result.success && result.data) {
-      setImageUri(result.data);
-    } else if (result.error) {
+      if (result.success && result.data) {
+        console.log('Image picked successfully:', result.data);
+        setImageUri(result.data);
+        return result.data;
+      } else if (result.error) {
+        console.error('Pick image error:', result.error);
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: result.error,
+          position: 'top',
+        });
+      }
+    } catch (error) {
+      console.error('Exception in handlePickImage:', error);
       Toast.show({
         type: 'error',
         text1: 'Error',
-        text2: result.error,
+        text2: error instanceof Error ? error.message : 'Gagal memilih gambar',
         position: 'top',
       });
     }
+    return undefined;
   };
 
   const onSubmit = async (data: UpdateProductInput) => {
     if (!id) return;
 
-    let finalImagePath = originalImagePath;
+    try {
+      let finalImagePath = originalImagePath;
 
-    // If image was changed, save new image and delete old one
-    if (imageUri && imageUri !== originalImagePath) {
-      // Delete old image if exists
-      if (originalImagePath) {
+      // If image was changed, save new image and delete old one
+      if (imageUri && imageUri !== originalImagePath) {
+        // Delete old image if exists
+        if (originalImagePath) {
+          await productService.deleteImage(originalImagePath);
+        }
+
+        // Save new image
+        const imageResult = await productService.saveImage(imageUri, id);
+        if (imageResult.success && imageResult.data) {
+          finalImagePath = imageResult.data;
+        } else {
+          console.error('Failed to save image:', imageResult.error);
+        }
+      } else if (!imageUri && originalImagePath) {
+        // If image was removed, delete old image
         await productService.deleteImage(originalImagePath);
+        finalImagePath = '';
       }
 
-      // Save new image
-      const imageResult = await productService.saveImage(imageUri, id);
-      if (imageResult.success && imageResult.data) {
-        finalImagePath = imageResult.data;
-      }
-    } else if (!imageUri && originalImagePath) {
-      // If image was removed, delete old image
-      await productService.deleteImage(originalImagePath);
-      finalImagePath = '';
-    }
-
-    const result = await productService.update(id, {
-      ...data,
-      image_path: finalImagePath,
-    });
-
-    if (result.success) {
-      Toast.show({
-        type: 'success',
-        text1: 'Berhasil',
-        text2: 'Produk berhasil diperbarui',
-        position: 'top',
+      const result = await productService.update(id, {
+        ...data,
+        image_path: finalImagePath,
       });
-      router.push('/(drawer)/products');
-    } else {
+
+      if (result.success) {
+        Toast.show({
+          type: 'success',
+          text1: 'Berhasil',
+          text2: 'Produk berhasil diperbarui',
+          position: 'top',
+        });
+        router.push('/(drawer)/products');
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: result.error || 'Gagal memperbarui produk',
+          position: 'top',
+        });
+      }
+    } catch (error) {
+      console.error('Exception in onSubmit:', error);
       Toast.show({
         type: 'error',
         text1: 'Error',
-        text2: result.error || 'Gagal memperbarui produk',
+        text2: error instanceof Error ? error.message : 'Terjadi kesalahan',
         position: 'top',
       });
     }

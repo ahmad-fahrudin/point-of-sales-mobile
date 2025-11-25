@@ -34,69 +34,95 @@ export default function CreateProductScreen() {
   });
 
   const handlePickImage = async (fromCamera: boolean = false) => {
-    const result = await productService.pickImage(fromCamera);
+    try {
+      const result = await productService.pickImage(fromCamera);
 
-    if (result.success && result.data) {
-      setImageUri(result.data);
-    } else if (result.error) {
+      if (result.success && result.data) {
+        console.log('Image picked successfully:', result.data);
+        setImageUri(result.data);
+        return result.data;
+      } else if (result.error) {
+        console.error('Pick image error:', result.error);
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: result.error,
+          position: 'top',
+        });
+      }
+    } catch (error) {
+      console.error('Exception in handlePickImage:', error);
       Toast.show({
         type: 'error',
         text1: 'Error',
-        text2: result.error,
+        text2: error instanceof Error ? error.message : 'Gagal memilih gambar',
         position: 'top',
       });
     }
+    return undefined;
   };
 
   const onSubmit = async (data: CreateProductInput) => {
-    // Create temporary product to get ID
-    const tempResult = await productService.create({
-      ...data,
-      image_path: '',
-    });
-
-    if (!tempResult.success || !tempResult.data) {
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: tempResult.error || 'Gagal menambahkan produk',
-        position: 'top',
+    try {
+      // Create temporary product to get ID
+      const tempResult = await productService.create({
+        ...data,
+        image_path: '',
       });
-      return;
-    }
 
-    const productId = tempResult.data;
-
-    // Save image if exists
-    let finalImagePath = '';
-    if (imageUri) {
-      const imageResult = await productService.saveImage(imageUri, productId);
-      if (imageResult.success && imageResult.data) {
-        finalImagePath = imageResult.data;
+      if (!tempResult.success || !tempResult.data) {
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: tempResult.error || 'Gagal menambahkan produk',
+          position: 'top',
+        });
+        return;
       }
-    }
 
-    // Update product with image path
-    const updateResult = await productService.update(productId, {
-      ...data,
-      image_path: finalImagePath,
-    });
+      const productId = tempResult.data;
 
-    if (updateResult.success) {
-      Toast.show({
-        type: 'success',
-        text1: 'Berhasil',
-        text2: 'Produk berhasil ditambahkan',
-        position: 'top',
+      // Save image if exists
+      let finalImagePath = '';
+      if (imageUri) {
+        const imageResult = await productService.saveImage(imageUri, productId);
+        if (imageResult.success && imageResult.data) {
+          finalImagePath = imageResult.data;
+        } else {
+          console.error('Failed to save image:', imageResult.error);
+        }
+      }
+
+      // Update product with image path
+      const updateResult = await productService.update(productId, {
+        ...data,
+        image_path: finalImagePath,
       });
-      reset();
-      setImageUri('');
-      router.push('/(drawer)/products');
-    } else {
+
+      if (updateResult.success) {
+        Toast.show({
+          type: 'success',
+          text1: 'Berhasil',
+          text2: 'Produk berhasil ditambahkan',
+          position: 'top',
+        });
+        reset();
+        setImageUri('');
+        router.push('/(drawer)/products');
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: updateResult.error || 'Gagal menambahkan produk',
+          position: 'top',
+        });
+      }
+    } catch (error) {
+      console.error('Exception in onSubmit:', error);
       Toast.show({
         type: 'error',
         text1: 'Error',
-        text2: updateResult.error || 'Gagal menambahkan produk',
+        text2: error instanceof Error ? error.message : 'Terjadi kesalahan',
         position: 'top',
       });
     }

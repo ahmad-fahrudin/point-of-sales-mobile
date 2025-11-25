@@ -272,9 +272,10 @@ export const productService = {
     try {
       // Create products directory in document directory
       const productsDir = new FileSystem.Directory(FileSystem.Paths.document, 'products');
-
+      
       // Create directory if it doesn't exist
-      if (!(await productsDir.exists)) {
+      const dirExists = await productsDir.exists;
+      if (!dirExists) {
         await productsDir.create();
       }
 
@@ -285,6 +286,8 @@ export const productService = {
       // Copy file to new location
       const sourceFile = new FileSystem.File(uri);
       await sourceFile.copy(destinationFile);
+
+      console.log('Image saved to:', destinationFile.uri);
 
       return {
         success: true,
@@ -307,9 +310,10 @@ export const productService = {
       // Only delete if it's a local file in our app directory
       if (imagePath && imagePath.includes('products/')) {
         const file = new FileSystem.File(imagePath);
-        if (await file.exists) {
+        const fileExists = await file.exists;
+
+        if (fileExists) {
           await file.delete();
-          console.log('Image deleted:', imagePath);
         }
       }
     } catch (error) {

@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
+import { Pagination } from '@/components/ui/pagination';
 import { TableRowSkeleton } from '@/components/ui/skeleton';
 import { useCategories } from '@/hooks/categories/use-categories';
 import { useProducts } from '@/hooks/products/use-products';
@@ -8,8 +9,8 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { productService } from '@/services/product.service';
 import type { Product } from '@/types/product.type';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { FlatList, Modal, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { FlatList, Image, Modal, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
@@ -20,6 +21,16 @@ export default function ProductsScreen() {
   const borderColor = useThemeColor({ light: '#e0e0e0', dark: '#444' }, 'text');
   const cardBg = useThemeColor({ light: '#fff', dark: '#1c1c1c' }, 'background');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return products.slice(startIndex, endIndex);
+  }, [products, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(products.length / itemsPerPage);
 
   const handleDelete = async (productId: string, name: string, imagePath: string) => {
     const result = await productService.delete(productId, imagePath);
@@ -43,6 +54,19 @@ export default function ProductsScreen() {
 
   const renderItem = ({ item }: { item: Product }) => (
     <View style={[styles.tableRow, { borderBottomColor: borderColor, backgroundColor: cardBg }]}>
+      <View style={styles.imageCell}>
+        {item.image_path ? (
+          <Image
+            source={{ uri: item.image_path }}
+            style={styles.thumbnail}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.thumbnailPlaceholder}>
+            <Icon name="image" size={20} color="#999" />
+          </View>
+        )}
+      </View>
       <View style={styles.tableCell}>
         <ThemedText style={styles.cellText}>{item.name}</ThemedText>
       </View>
@@ -66,6 +90,9 @@ export default function ProductsScreen() {
 
         <View style={styles.tableContainer}>
           <View style={[styles.tableHeader, { borderBottomColor: borderColor, backgroundColor: cardBg }]}>
+            <View style={styles.imageCell}>
+              <ThemedText style={styles.headerText}>Gambar</ThemedText>
+            </View>
             <View style={styles.tableCell}>
               <ThemedText style={styles.headerText}>Nama Produk</ThemedText>
             </View>
@@ -154,6 +181,9 @@ export default function ProductsScreen() {
 
       <View style={styles.tableContainer}>
         <View style={[styles.tableHeader, { borderBottomColor: borderColor, backgroundColor: cardBg }]}>
+          <View style={styles.imageCell}>
+            <ThemedText style={styles.headerText}>Gambar</ThemedText>
+          </View>
           <View style={styles.tableCell}>
             <ThemedText style={styles.headerText}>Nama Produk</ThemedText>
           </View>
@@ -166,7 +196,7 @@ export default function ProductsScreen() {
         </View>
 
         <FlatList
-          data={products}
+          data={paginatedProducts}
           renderItem={renderItem}
           keyExtractor={(item) => item.productId}
           ListEmptyComponent={
@@ -174,6 +204,14 @@ export default function ProductsScreen() {
               <ThemedText>Tidak ada data produk</ThemedText>
             </View>
           }
+        />
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          totalItems={products.length}
         />
       </View>
     </ThemedView>
@@ -220,6 +258,25 @@ const styles = StyleSheet.create({
   tableRowActive: {
     zIndex: 1001,
     elevation: 6,
+  },
+  imageCell: {
+    width: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingRight: 8,
+  },
+  thumbnail: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+  },
+  thumbnailPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   tableCell: {
     flex: 1,

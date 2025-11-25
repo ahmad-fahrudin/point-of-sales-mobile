@@ -1,12 +1,14 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
+import { Pagination } from '@/components/ui/pagination';
 import { TableRowSkeleton } from '@/components/ui/skeleton';
 import { useCategories } from '@/hooks/categories/use-categories';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { categoryService } from '@/services/category.service';
 import type { Category } from '@/types/category.type';
 import { useRouter } from 'expo-router';
+import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -16,6 +18,16 @@ export default function CategoriesScreen() {
   const { categories, loading, error, getParentName } = useCategories();
   const borderColor = useThemeColor({ light: '#e0e0e0', dark: '#444' }, 'text');
   const cardBg = useThemeColor({ light: '#fff', dark: '#1c1c1c' }, 'background');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const paginatedCategories = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return categories.slice(startIndex, endIndex);
+  }, [categories, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(categories.length / itemsPerPage);
 
   const handleDelete = async (categoryId: string, name: string) => {
     // Check if category has children
@@ -130,7 +142,7 @@ export default function CategoriesScreen() {
         </View>
 
         <FlatList
-          data={categories}
+          data={paginatedCategories}
           renderItem={renderItem}
           keyExtractor={(item) => item.categoryId}
           ListEmptyComponent={
@@ -138,6 +150,14 @@ export default function CategoriesScreen() {
               <ThemedText>Tidak ada data kategori</ThemedText>
             </View>
           }
+        />
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          totalItems={categories.length}
         />
       </View>
     </ThemedView>
