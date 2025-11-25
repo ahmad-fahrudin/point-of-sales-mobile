@@ -12,7 +12,7 @@ function CustomDrawerContent(props: any) {
   const router = useRouter();
   const pathname = usePathname();
   const colorScheme = useColorScheme();
-  const [categoryExpanded, setCategoryExpanded] = useState(false);
+  const [setupExpanded, setSetupExpanded] = useState(false);
 
   const activeColor = Colors[colorScheme ?? 'light'].tint;
   // Use the gray icon color defined in the theme so the header matches the DrawerItem inactive color
@@ -28,44 +28,49 @@ function CustomDrawerContent(props: any) {
         focused={pathname === '/(drawer)' || pathname === '/'}
       />
 
-      {/* Category Dropdown */}
-      <TouchableOpacity style={styles.dropdownHeader} onPress={() => setCategoryExpanded(!categoryExpanded)}>
+      {/* Setup Dropdown */}
+      <TouchableOpacity style={styles.dropdownHeader} onPress={() => setSetupExpanded(!setupExpanded)}>
         <View style={styles.dropdownHeaderContent}>
           <MaterialCommunityIcons
             size={28}
-            name="view-list"
-            color={pathname.includes('/categories') ? activeColor : inactiveColor}
+            name="cog"
+            color={pathname.includes('/categories') || pathname.includes('/products') ? activeColor : inactiveColor}
             style={styles.icon}
           />
           <Text
-            style={[styles.dropdownLabel, { color: pathname.includes('/categories') ? activeColor : inactiveColor }]}
+            style={[
+              styles.dropdownLabel,
+              {
+                color: pathname.includes('/categories') || pathname.includes('/products') ? activeColor : inactiveColor,
+              },
+            ]}
           >
-            Category
+            Setup
           </Text>
         </View>
         <MaterialCommunityIcons
           size={20}
-          name={categoryExpanded ? 'chevron-up' : 'chevron-down'}
-          color={categoryExpanded ? activeColor : inactiveColor}
+          name={setupExpanded ? 'chevron-up' : 'chevron-down'}
+          color={setupExpanded ? activeColor : inactiveColor}
         />
       </TouchableOpacity>
 
-      {categoryExpanded && (
+      {setupExpanded && (
         <View style={styles.subItemsContainer}>
           <DrawerItem
-            label="List Categories"
-            icon={({ color }) => <MaterialCommunityIcons size={24} name="format-list-bulleted" color={color} />}
+            label="Category"
+            icon={({ color }) => <MaterialCommunityIcons size={24} name="view-list" color={color} />}
             onPress={() => router.push('/(drawer)/categories')}
             activeTintColor={activeColor}
-            focused={pathname === '/(drawer)/categories' || pathname === '/(drawer)/categories/index'}
+            focused={pathname.includes('/categories')}
             style={styles.subItem}
           />
           <DrawerItem
-            label="Create Category"
-            icon={({ color }) => <MaterialCommunityIcons size={24} name="plus-circle" color={color} />}
-            onPress={() => router.push('/(drawer)/categories/create')}
+            label="Product"
+            icon={({ color }) => <MaterialCommunityIcons size={24} name="package-variant" color={color} />}
+            onPress={() => router.push('/(drawer)/products')}
             activeTintColor={activeColor}
-            focused={pathname === '/(drawer)/categories/create'}
+            focused={pathname.includes('/products')}
             style={styles.subItem}
           />
         </View>
@@ -155,6 +160,41 @@ export default function DrawerLayout() {
           name="categories/edit"
           options={{
             title: 'Edit Kategori',
+            drawerItemStyle: { height: 0, display: 'none' },
+            headerShown: true,
+          }}
+        />
+        <Drawer.Screen
+          name="products"
+          options={{
+            title: 'Product',
+            drawerLabel: 'Product',
+            drawerIcon: ({ color }) => <MaterialCommunityIcons size={28} name="package-variant" color={color} />,
+            headerShown: true,
+            drawerItemStyle: { height: 0, display: 'none' },
+          }}
+        />
+        <Drawer.Screen
+          name="products/index"
+          options={{
+            title: 'Product',
+            drawerLabel: 'Product',
+            drawerIcon: ({ color }) => <MaterialCommunityIcons size={28} name="package-variant" color={color} />,
+            headerShown: true,
+          }}
+        />
+        <Drawer.Screen
+          name="products/create"
+          options={{
+            title: 'Tambah Produk',
+            drawerItemStyle: { height: 0, display: 'none' },
+            headerShown: true,
+          }}
+        />
+        <Drawer.Screen
+          name="products/edit"
+          options={{
+            title: 'Edit Produk',
             drawerItemStyle: { height: 0, display: 'none' },
             headerShown: true,
           }}

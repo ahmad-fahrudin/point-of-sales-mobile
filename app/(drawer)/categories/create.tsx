@@ -1,12 +1,10 @@
-import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { useCategories } from '@/hooks/categories/use-categories';
-import { useThemeColor } from '@/hooks/use-theme-color';
 import { categoryService } from '@/services/category.service';
 import type { CreateCategoryInput } from '@/types/category.type';
-import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -15,9 +13,6 @@ import Toast from 'react-native-toast-message';
 export default function CreateCategoryScreen() {
   const router = useRouter();
   const { categories, loading: categoriesLoading } = useCategories();
-  const borderColor = useThemeColor({ light: '#e0e0e0', dark: '#444' }, 'text');
-  const backgroundColor = useThemeColor({ light: '#fff', dark: '#1c1c1c' }, 'background');
-  const textColor = useThemeColor({ light: '#000', dark: '#fff' }, 'text');
 
   const {
     control,
@@ -73,23 +68,22 @@ export default function CreateCategoryScreen() {
             )}
           />
 
-          <View style={styles.inputContainer}>
-            <ThemedText style={styles.label}>Parent Kategori (Opsional)</ThemedText>
-            <View style={[styles.pickerContainer, { borderColor, backgroundColor }]}>
-              <Controller
-                control={control}
-                name="parentId"
-                render={({ field: { onChange, value } }) => (
-                  <Picker selectedValue={value} onValueChange={onChange} style={{ color: textColor }}>
-                    <Picker.Item label="-- Pilih Parent Kategori --" value="" />
-                    {categories.map((category) => (
-                      <Picker.Item key={category.categoryId} label={category.name} value={category.categoryId} />
-                    ))}
-                  </Picker>
-                )}
+          <Controller
+            control={control}
+            name="parentId"
+            render={({ field: { onChange, value } }) => (
+              <Select
+                label="Parent Kategori (Opsional)"
+                selectedValue={value}
+                onValueChange={onChange}
+                options={categories.map((category) => ({
+                  label: category.name,
+                  value: category.categoryId,
+                }))}
+                placeholder="-- Pilih Parent Kategori --"
               />
-            </View>
-          </View>
+            )}
+          />
 
           <View style={styles.buttonContainer}>
             <Button
@@ -117,24 +111,8 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
-  header: {
-    marginBottom: 24,
-  },
   form: {
     gap: 8,
-  },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  label: {
-    marginBottom: 8,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderRadius: 8,
-    overflow: 'hidden',
   },
   buttonContainer: {
     flexDirection: 'row',
