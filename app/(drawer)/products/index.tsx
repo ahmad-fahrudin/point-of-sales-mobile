@@ -9,7 +9,7 @@ import { productService } from '@/services/product.service';
 import type { Product } from '@/types/product.type';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, FlatList, Modal, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FlatList, Modal, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
@@ -21,36 +21,24 @@ export default function ProductsScreen() {
   const cardBg = useThemeColor({ light: '#fff', dark: '#1c1c1c' }, 'background');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  const handleDelete = (productId: string, name: string, imagePath: string) => {
-    Alert.alert('Konfirmasi Hapus', `Apakah Anda yakin ingin menghapus produk "${name}"?`, [
-      {
-        text: 'Batal',
-        style: 'cancel',
-      },
-      {
-        text: 'Hapus',
-        style: 'destructive',
-        onPress: async () => {
-          const result = await productService.delete(productId, imagePath);
+  const handleDelete = async (productId: string, name: string, imagePath: string) => {
+    const result = await productService.delete(productId, imagePath);
 
-          if (result.success) {
-            Toast.show({
-              type: 'success',
-              text1: 'Berhasil',
-              text2: 'Produk berhasil dihapus',
-              position: 'top',
-            });
-          } else {
-            Toast.show({
-              type: 'error',
-              text1: 'Error',
-              text2: result.error || 'Gagal menghapus produk',
-              position: 'top',
-            });
-          }
-        },
-      },
-    ]);
+    if (result.success) {
+      Toast.show({
+        type: 'success',
+        text1: 'Berhasil',
+        text2: 'Produk berhasil dihapus',
+        position: 'top',
+      });
+    } else {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: result.error || 'Gagal menghapus produk',
+        position: 'top',
+      });
+    }
   };
 
   const renderItem = ({ item }: { item: Product }) => (

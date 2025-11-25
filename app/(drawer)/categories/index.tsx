@@ -7,7 +7,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { categoryService } from '@/services/category.service';
 import type { Category } from '@/types/category.type';
 import { useRouter } from 'expo-router';
-import { Alert, FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
@@ -17,7 +17,7 @@ export default function CategoriesScreen() {
   const borderColor = useThemeColor({ light: '#e0e0e0', dark: '#444' }, 'text');
   const cardBg = useThemeColor({ light: '#fff', dark: '#1c1c1c' }, 'background');
 
-  const handleDelete = (categoryId: string, name: string) => {
+  const handleDelete = async (categoryId: string, name: string) => {
     // Check if category has children
     const hasChildren = categories.some((cat) => cat.parentId === categoryId);
 
@@ -31,36 +31,23 @@ export default function CategoriesScreen() {
       return;
     }
 
-    // Confirm deletion with native alert
-    Alert.alert('Konfirmasi Hapus', `Apakah Anda yakin ingin menghapus kategori "${name}"?`, [
-      {
-        text: 'Batal',
-        style: 'cancel',
-      },
-      {
-        text: 'Hapus',
-        style: 'destructive',
-        onPress: async () => {
-          const result = await categoryService.delete(categoryId);
+    const result = await categoryService.delete(categoryId);
 
-          if (result.success) {
-            Toast.show({
-              type: 'success',
-              text1: 'Berhasil',
-              text2: 'Kategori berhasil dihapus',
-              position: 'top',
-            });
-          } else {
-            Toast.show({
-              type: 'error',
-              text1: 'Error',
-              text2: result.error || 'Gagal menghapus kategori',
-              position: 'top',
-            });
-          }
-        },
-      },
-    ]);
+    if (result.success) {
+      Toast.show({
+        type: 'success',
+        text1: 'Berhasil',
+        text2: 'Kategori berhasil dihapus',
+        position: 'top',
+      });
+    } else {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: result.error || 'Gagal menghapus kategori',
+        position: 'top',
+      });
+    }
   };
 
   const renderItem = ({ item }: { item: Category }) => (
@@ -75,7 +62,12 @@ export default function CategoriesScreen() {
         <Pressable style={styles.actionButton} onPress={() => router.push(`/categories/edit?id=${item.categoryId}`)}>
           <Icon name="edit" size={20} color="#2196F3" />
         </Pressable>
-        <Pressable style={styles.actionButton} onPress={() => handleDelete(item.categoryId, item.name)}>
+        <Pressable
+          style={styles.actionButton}
+          onPress={() => {
+            handleDelete(item.categoryId, item.name);
+          }}
+        >
           <Icon name="delete" size={20} color="#f44336" />
         </Pressable>
       </View>
