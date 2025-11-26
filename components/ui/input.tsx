@@ -10,6 +10,7 @@ export type InputProps = TextInputProps & {
   lightColor?: string;
   darkColor?: string;
   leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
   showPasswordToggle?: boolean;
 };
 
@@ -20,6 +21,7 @@ export function Input({
   lightColor,
   darkColor,
   leftIcon,
+  rightIcon,
   showPasswordToggle = false,
   secureTextEntry,
   ...otherProps
@@ -59,6 +61,7 @@ export function Input({
             <Icon name={isPasswordVisible ? 'visibility' : 'visibility-off'} size={20} color="#666" />
           </Pressable>
         )}
+        {rightIcon && !showPasswordToggle && <View style={styles.rightIconContainer}>{rightIcon}</View>}
       </View>
       {error && <ThemedText style={styles.error}>{error}</ThemedText>}
     </View>

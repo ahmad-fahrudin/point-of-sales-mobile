@@ -14,6 +14,7 @@ interface SelectProps extends Omit<PickerProps, 'children'> {
   options: SelectOption[];
   placeholder?: string;
   disabled?: boolean;
+  value?: string;
 }
 
 export function Select({
@@ -22,6 +23,7 @@ export function Select({
   options,
   placeholder = '-- Pilih --',
   disabled = false,
+  value,
   ...pickerProps
 }: SelectProps) {
   const borderColor = useThemeColor({ light: '#e0e0e0', dark: '#444' }, 'text');
@@ -45,6 +47,7 @@ export function Select({
       >
         <Picker
           {...pickerProps}
+          selectedValue={value}
           enabled={!disabled}
           style={[styles.picker, { color: textColor }]}
           dropdownIconColor={textColor}

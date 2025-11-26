@@ -6,6 +6,7 @@ import 'react-native-reanimated';
 import Toast from 'react-native-toast-message';
 
 import { auth } from '@/config/firebase';
+import { CartProvider } from '@/hooks/use-cart-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { onAuthStateChanged } from 'firebase/auth';
 
@@ -50,17 +51,19 @@ export default function RootLayout() {
   useProtectedRoute(user, isLoading);
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      {!isLoading && (
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="auth/login" options={{ headerShown: false }} />
-          <Stack.Screen name="auth/register" options={{ headerShown: false }} />
-          <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal', headerShown: true }} />
-        </Stack>
-      )}
-      <StatusBar style="auto" />
-      <Toast />
-    </ThemeProvider>
+    <CartProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        {!isLoading && (
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="auth/login" options={{ headerShown: false }} />
+            <Stack.Screen name="auth/register" options={{ headerShown: false }} />
+            <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal', headerShown: true }} />
+          </Stack>
+        )}
+        <StatusBar style="auto" />
+        <Toast />
+      </ThemeProvider>
+    </CartProvider>
   );
 }

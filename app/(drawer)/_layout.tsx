@@ -15,7 +15,6 @@ function CustomDrawerContent(props: any) {
   const [setupExpanded, setSetupExpanded] = useState(false);
 
   const activeColor = Colors[colorScheme ?? 'light'].tint;
-  // Use the gray icon color defined in the theme so the header matches the DrawerItem inactive color
   const inactiveColor = Colors[colorScheme ?? 'light'].icon;
 
   return (
@@ -75,6 +74,14 @@ function CustomDrawerContent(props: any) {
           />
         </View>
       )}
+
+      <DrawerItem
+        label="Riwayat Pesanan"
+        icon={({ color }) => <MaterialCommunityIcons size={28} name="receipt" color={color} />}
+        onPress={() => router.push('/(drawer)/orders/history')}
+        activeTintColor={activeColor}
+        focused={pathname.includes('/orders/history')}
+      />
     </DrawerContentScrollView>
   );
 }
@@ -195,6 +202,41 @@ export default function DrawerLayout() {
           name="products/edit"
           options={{
             title: 'Edit Produk',
+            drawerItemStyle: { height: 0, display: 'none' },
+            headerShown: true,
+          }}
+        />
+        <Drawer.Screen
+          name="orders"
+          options={{
+            title: 'Orders',
+            drawerLabel: 'Orders',
+            drawerIcon: ({ color }) => <MaterialCommunityIcons size={28} name="cart" color={color} />,
+            headerShown: false,
+            drawerItemStyle: { height: 0, display: 'none' },
+          }}
+        />
+        <Drawer.Screen
+          name="orders/index"
+          options={{
+            title: 'Keranjang Pesanan',
+            drawerItemStyle: { height: 0, display: 'none' },
+            headerShown: true,
+          }}
+        />
+        <Drawer.Screen
+          name="orders/history"
+          options={{
+            title: 'Riwayat Pesanan',
+            drawerLabel: 'Riwayat Pesanan',
+            drawerIcon: ({ color }) => <MaterialCommunityIcons size={28} name="receipt" color={color} />,
+            headerShown: true,
+          }}
+        />
+        <Drawer.Screen
+          name="orders/detail"
+          options={{
+            title: 'Detail Pesanan',
             drawerItemStyle: { height: 0, display: 'none' },
             headerShown: true,
           }}
