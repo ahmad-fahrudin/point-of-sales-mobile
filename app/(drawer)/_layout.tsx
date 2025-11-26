@@ -4,7 +4,7 @@ import { DrawerContentScrollView, DrawerItem } from '@react-navigation/drawer';
 import { usePathname, useRouter } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
 import React, { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -16,89 +16,121 @@ function CustomDrawerContent(props: any) {
 
   const activeColor = Colors[colorScheme ?? 'light'].tint;
   const inactiveColor = Colors[colorScheme ?? 'light'].icon;
+  // gunakan warna 'danger' dari theme jika tersedia, fallback ke merah iOS
+  const destructiveColor = (Colors[colorScheme ?? 'light'] as any)?.danger ?? '#ff3b30';
+
+  // Added logout handler
+  const handleLogout = () => {
+    Alert.alert('Logout', 'Anda yakin ingin logout?', [
+      { text: 'Batal', style: 'cancel' },
+      {
+        text: 'Logout',
+        style: 'destructive',
+        onPress: () => {
+          router.replace('/auth/login');
+        },
+      },
+    ]);
+  };
 
   return (
-    <DrawerContentScrollView {...props}>
-      <DrawerItem
-        label="Home"
-        icon={({ color }) => <MaterialCommunityIcons size={28} name="home" color={color} />}
-        onPress={() => router.push('/(drawer)')}
-        activeTintColor={activeColor}
-        focused={pathname === '/(drawer)' || pathname === '/'}
-      />
-
-      {/* Setup Dropdown */}
-      <TouchableOpacity style={styles.dropdownHeader} onPress={() => setSetupExpanded(!setupExpanded)}>
-        <View style={styles.dropdownHeaderContent}>
-          <MaterialCommunityIcons
-            size={28}
-            name="cog"
-            color={pathname.includes('/categories') || pathname.includes('/products') ? activeColor : inactiveColor}
-            style={styles.icon}
-          />
-          <Text
-            style={[
-              styles.dropdownLabel,
-              {
-                color: pathname.includes('/categories') || pathname.includes('/products') ? activeColor : inactiveColor,
-              },
-            ]}
-          >
-            Setup
-          </Text>
-        </View>
-        <MaterialCommunityIcons
-          size={20}
-          name={setupExpanded ? 'chevron-up' : 'chevron-down'}
-          color={setupExpanded ? activeColor : inactiveColor}
+    // Wrap scroll + footer in a container so the footer can be static at the bottom
+    <View style={{ flex: 1 }}>
+      <DrawerContentScrollView {...props} contentContainerStyle={{ flexGrow: 1 }}>
+        <DrawerItem
+          label="Home"
+          icon={({ color }) => <MaterialCommunityIcons size={28} name="home" color={color} />}
+          onPress={() => router.push('/(drawer)')}
+          activeTintColor={activeColor}
+          focused={pathname === '/(drawer)' || pathname === '/'}
         />
-      </TouchableOpacity>
 
-      {setupExpanded && (
-        <View style={styles.subItemsContainer}>
-          <DrawerItem
-            label="Category"
-            icon={({ color }) => <MaterialCommunityIcons size={24} name="view-list" color={color} />}
-            onPress={() => router.push('/(drawer)/categories')}
-            activeTintColor={activeColor}
-            focused={pathname.includes('/categories')}
-            style={styles.subItem}
+        {/* Setup Dropdown */}
+        <TouchableOpacity style={styles.dropdownHeader} onPress={() => setSetupExpanded(!setupExpanded)}>
+          <View style={styles.dropdownHeaderContent}>
+            <MaterialCommunityIcons
+              size={28}
+              name="cog"
+              color={pathname.includes('/categories') || pathname.includes('/products') ? activeColor : inactiveColor}
+              style={styles.icon}
+            />
+            <Text
+              style={[
+                styles.dropdownLabel,
+                {
+                  color: pathname.includes('/categories') || pathname.includes('/products') ? activeColor : inactiveColor,
+                },
+              ]}
+            >
+              Setup
+            </Text>
+          </View>
+          <MaterialCommunityIcons
+            size={20}
+            name={setupExpanded ? 'chevron-up' : 'chevron-down'}
+            color={setupExpanded ? activeColor : inactiveColor}
           />
-          <DrawerItem
-            label="Product"
-            icon={({ color }) => <MaterialCommunityIcons size={24} name="package-variant" color={color} />}
-            onPress={() => router.push('/(drawer)/products')}
-            activeTintColor={activeColor}
-            focused={pathname.includes('/products')}
-            style={styles.subItem}
-          />
-        </View>
-      )}
+        </TouchableOpacity>
 
-      <DrawerItem
-        label="Riwayat Pesanan"
-        icon={({ color }) => <MaterialCommunityIcons size={28} name="receipt" color={color} />}
-        onPress={() => router.push('/(drawer)/orders/history')}
-        activeTintColor={activeColor}
-        focused={pathname.includes('/orders/history')}
-      />
+        {setupExpanded && (
+          <View style={styles.subItemsContainer}>
+            <DrawerItem
+              label="Category"
+              icon={({ color }) => <MaterialCommunityIcons size={24} name="view-list" color={color} />}
+              onPress={() => router.push('/(drawer)/categories')}
+              activeTintColor={activeColor}
+              focused={pathname.includes('/categories')}
+              style={styles.subItem}
+            />
+            <DrawerItem
+              label="Product"
+              icon={({ color }) => <MaterialCommunityIcons size={24} name="package-variant" color={color} />}
+              onPress={() => router.push('/(drawer)/products')}
+              activeTintColor={activeColor}
+              focused={pathname.includes('/products')}
+              style={styles.subItem}
+            />
+          </View>
+        )}
 
-      <DrawerItem
-        label="Laporan Belanja"
-        icon={({ color }) => <MaterialCommunityIcons size={28} name="chart-bar" color={color} />}
-        onPress={() => router.push('/(drawer)/reports/spending')}
-        activeTintColor={activeColor}
-        focused={pathname.includes('/reports/spending')}
-      />
+        <DrawerItem
+          label="Riwayat Pesanan"
+          icon={({ color }) => <MaterialCommunityIcons size={28} name="receipt" color={color} />}
+          onPress={() => router.push('/(drawer)/orders/history')}
+          activeTintColor={activeColor}
+          focused={pathname.includes('/orders/history')}
+        />
 
-      <DrawerItem
-        label="Pengeluaran"
-        icon={({ color }) => <MaterialCommunityIcons size={28} name="cash-multiple" color={color} />}
-        onPress={() => router.push('/(drawer)/spendings')}
-        activeTintColor={activeColor}
-        focused={pathname.includes('/spendings')}
-      />
-    </DrawerContentScrollView>
+        <DrawerItem
+          label="Laporan Belanja"
+          icon={({ color }) => <MaterialCommunityIcons size={28} name="chart-bar" color={color} />}
+          onPress={() => router.push('/(drawer)/reports/spending')}
+          activeTintColor={activeColor}
+          focused={pathname.includes('/reports/spending')}
+        />
+
+        <DrawerItem
+          label="Pengeluaran"
+          icon={({ color }) => <MaterialCommunityIcons size={28} name="cash-multiple" color={color} />}
+          onPress={() => router.push('/(drawer)/spendings')}
+          activeTintColor={activeColor}
+          focused={pathname.includes('/spendings')}
+        />
+      </DrawerContentScrollView>
+
+      {/* Logout sekarang berada di luar DrawerContentScrollView sehingga menempel di bawah */}
+      <View style={styles.logoutContainer}>
+        <DrawerItem
+          label="Logout"
+          // selalu gunakan warna destruktif
+          icon={() => <MaterialCommunityIcons size={28} name="logout" color={destructiveColor} />}
+          onPress={handleLogout}
+          activeTintColor={destructiveColor}
+          labelStyle={{ color: destructiveColor, fontWeight: '600' }}
+          style={styles.logoutItem} // <-- apply new style
+        />
+      </View>
+    </View>
   );
 }
 
@@ -128,6 +160,20 @@ const styles = StyleSheet.create({
   },
   subItem: {
     paddingLeft: 16,
+  },
+  // Adjusted logoutContainer style
+  logoutContainer: {
+    borderTopWidth: 1,
+    borderTopColor: '#e6e6e6',
+    paddingVertical: 8,
+    paddingBottom: 16, 
+    alignSelf: 'stretch',
+  },
+  // shift logout item a bit to the right
+  logoutItem: {
+    paddingLeft: 20,
+    alignSelf: 'stretch',
+    backgroundColor: 'transparent',
   },
 });
 
