@@ -1,9 +1,8 @@
 import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useCategories } from '@/hooks/categories/use-categories';
+// parent categories removed
 import { useCategory } from '@/hooks/categories/use-category';
 import { categoryService } from '@/services/category.service';
 import type { UpdateCategoryInput } from '@/types/category.type';
@@ -17,7 +16,6 @@ export default function EditCategoryScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { category, loading: categoryLoading, error: categoryError } = useCategory(id);
-  const { categories, getCategoriesExcluding } = useCategories();
 
   const {
     control,
@@ -27,7 +25,6 @@ export default function EditCategoryScreen() {
   } = useForm<UpdateCategoryInput>({
     defaultValues: {
       name: '',
-      parentId: '',
     },
   });
 
@@ -36,7 +33,6 @@ export default function EditCategoryScreen() {
     if (category) {
       reset({
         name: category.name,
-        parentId: category.parentId || '',
       });
     }
   }, [category, reset]);
@@ -122,22 +118,7 @@ export default function EditCategoryScreen() {
             )}
           />
 
-          <Controller
-            control={control}
-            name="parentId"
-            render={({ field: { onChange, value } }) => (
-              <Select
-                label="Parent Kategori (Opsional)"
-                selectedValue={value}
-                onValueChange={onChange}
-                options={getCategoriesExcluding(id).map((category) => ({
-                  label: category.name,
-                  value: category.categoryId,
-                }))}
-                placeholder="-- Pilih Parent Kategori --"
-              />
-            )}
-          />
+          {/* Parent selector removed. Categories are now flat (no parent relationship). */}
 
           <View style={styles.buttonContainer}>
             <Button

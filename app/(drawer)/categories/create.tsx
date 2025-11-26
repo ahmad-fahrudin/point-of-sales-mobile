@@ -1,8 +1,7 @@
 import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { useCategories } from '@/hooks/categories/use-categories';
+// parent categories removed
 import { categoryService } from '@/services/category.service';
 import type { CreateCategoryInput } from '@/types/category.type';
 import { useRouter } from 'expo-router';
@@ -12,7 +11,6 @@ import Toast from 'react-native-toast-message';
 
 export default function CreateCategoryScreen() {
   const router = useRouter();
-  const { categories, loading: categoriesLoading } = useCategories();
 
   const {
     control,
@@ -22,7 +20,6 @@ export default function CreateCategoryScreen() {
   } = useForm<CreateCategoryInput>({
     defaultValues: {
       name: '',
-      parentId: '',
     },
   });
 
@@ -68,22 +65,7 @@ export default function CreateCategoryScreen() {
             )}
           />
 
-          <Controller
-            control={control}
-            name="parentId"
-            render={({ field: { onChange, value } }) => (
-              <Select
-                label="Parent Kategori (Opsional)"
-                selectedValue={value}
-                onValueChange={onChange}
-                options={categories.map((category) => ({
-                  label: category.name,
-                  value: category.categoryId,
-                }))}
-                placeholder="-- Pilih Parent Kategori --"
-              />
-            )}
-          />
+          {/* Parent selector removed. Categories are now flat (no parent relationship). */}
 
           <View style={styles.buttonContainer}>
             <Button

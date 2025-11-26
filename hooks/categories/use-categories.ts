@@ -26,26 +26,12 @@ export function useCategories() {
     return () => unsubscribe();
   }, []);
 
-  /**
-   * Get parent category name
-   */
-  const getParentName = (parentId: string | null) => {
-    return categoryService.getParentName(parentId, categories);
-  };
-
-  /**
-   * Filter categories excluding specific ID (useful for parent dropdown)
-   */
-  const getCategoriesExcluding = (excludeId?: string) => {
-    if (!excludeId) return categories;
-    return categories.filter((cat) => cat.categoryId !== excludeId);
-  };
+  // parent hierarchy removed — no helper functions for parent or exclusions
 
   return {
     categories,
     loading,
     error,
-    getParentName,
-    getCategoriesExcluding,
+    
   };
 }

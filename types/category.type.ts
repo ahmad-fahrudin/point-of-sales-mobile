@@ -1,7 +1,6 @@
 // Firestore data types (what's stored in database)
 export type FirestoreCategory = {
   name: string;
-  parentId: string | null;
   createdAt: string;
   updatedAt?: string;
 };
@@ -14,12 +13,10 @@ export type Category = FirestoreCategory & {
 // Form data types
 export type CreateCategoryInput = {
   name: string;
-  parentId: string;
 };
 
 export type UpdateCategoryInput = {
   name: string;
-  parentId: string;
 };
 
 // API response types

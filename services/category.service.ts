@@ -1,24 +1,24 @@
 import { db } from '@/config/firebase';
 import type {
-  ApiResponse,
-  Category,
-  CreateCategoryInput,
-  FirestoreCategory,
-  UpdateCategoryInput,
+    ApiResponse,
+    Category,
+    CreateCategoryInput,
+    FirestoreCategory,
+    UpdateCategoryInput,
 } from '@/types/category.type';
 import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  DocumentData,
-  getDoc,
-  getDocs,
-  onSnapshot,
-  orderBy,
-  query,
-  QuerySnapshot,
-  updateDoc,
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    DocumentData,
+    getDoc,
+    getDocs,
+    onSnapshot,
+    orderBy,
+    query,
+    QuerySnapshot,
+    updateDoc,
 } from 'firebase/firestore';
 
 /**
@@ -33,7 +33,6 @@ export const categoryService = {
     try {
       const data: FirestoreCategory = {
         name: input.name.trim(),
-        parentId: input.parentId || null,
         createdAt: new Date().toISOString(),
       };
 
@@ -59,7 +58,6 @@ export const categoryService = {
     try {
       await updateDoc(doc(db, 'categories', id), {
         name: input.name.trim(),
-        parentId: input.parentId || null,
         updatedAt: new Date().toISOString(),
       });
 
@@ -171,20 +169,5 @@ export const categoryService = {
     return unsubscribe;
   },
 
-  /**
-   * Get parent category name
-   */
-  getParentName(parentId: string | null, categories: Category[]): string {
-    if (!parentId) return '-';
-    const parent = categories.find((cat) => cat.categoryId === parentId);
-    return parent?.name || '-';
-  },
-
-  /**
-   * Validate if category can be deleted (check for child categories)
-   */
-  async canDelete(id: string, categories: Category[]): Promise<boolean> {
-    const hasChildren = categories.some((cat) => cat.parentId === id);
-    return !hasChildren;
-  },
+  // parent hierarchy removed — no helper functions for parent or delete checks
 };

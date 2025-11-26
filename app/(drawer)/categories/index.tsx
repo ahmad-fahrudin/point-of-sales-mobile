@@ -15,7 +15,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export default function CategoriesScreen() {
   const router = useRouter();
-  const { categories, loading, error, getParentName } = useCategories();
+  const { categories, loading, error } = useCategories();
   const borderColor = useThemeColor({ light: '#e0e0e0', dark: '#444' }, 'text');
   const cardBg = useThemeColor({ light: '#fff', dark: '#1c1c1c' }, 'background');
   const [currentPage, setCurrentPage] = useState(1);
@@ -30,18 +30,6 @@ export default function CategoriesScreen() {
   const totalPages = Math.ceil(categories.length / itemsPerPage);
 
   const handleDelete = async (categoryId: string, name: string) => {
-    // Check if category has children
-    const hasChildren = categories.some((cat) => cat.parentId === categoryId);
-
-    if (hasChildren) {
-      Toast.show({
-        type: 'error',
-        text1: 'Gagal Menghapus',
-        text2: 'Kategori ini memiliki sub-kategori. Hapus sub-kategori terlebih dahulu.',
-        position: 'top',
-      });
-      return;
-    }
 
     const result = await categoryService.delete(categoryId);
 
@@ -67,9 +55,7 @@ export default function CategoriesScreen() {
       <View style={styles.tableCell}>
         <ThemedText style={styles.cellText}>{item.name}</ThemedText>
       </View>
-      <View style={styles.tableCell}>
-        <ThemedText style={styles.cellText}>{getParentName(item.parentId)}</ThemedText>
-      </View>
+      {/* parent removed */}
       <View style={styles.actionCell}>
         <Pressable style={styles.actionButton} onPress={() => router.push(`/categories/edit?id=${item.categoryId}`)}>
           <Icon name="edit" size={20} color="#2196F3" />
@@ -97,9 +83,6 @@ export default function CategoriesScreen() {
           <View style={[styles.tableHeader, { borderBottomColor: borderColor, backgroundColor: cardBg }]}>
             <View style={styles.tableCell}>
               <ThemedText style={styles.headerText}>Nama Kategori</ThemedText>
-            </View>
-            <View style={styles.tableCell}>
-              <ThemedText style={styles.headerText}>Parent Kategori</ThemedText>
             </View>
             <View style={styles.actionCell}>
               <ThemedText style={styles.headerText}>Aksi</ThemedText>
@@ -132,9 +115,6 @@ export default function CategoriesScreen() {
         <View style={[styles.tableHeader, { borderBottomColor: borderColor, backgroundColor: cardBg }]}>
           <View style={styles.tableCell}>
             <ThemedText style={styles.headerText}>Nama Kategori</ThemedText>
-          </View>
-          <View style={styles.tableCell}>
-            <ThemedText style={styles.headerText}>Parent Kategori</ThemedText>
           </View>
           <View style={styles.actionCell}>
             <ThemedText style={styles.headerText}>Aksi</ThemedText>
