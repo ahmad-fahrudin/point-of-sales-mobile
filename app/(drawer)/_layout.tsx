@@ -82,6 +82,22 @@ function CustomDrawerContent(props: any) {
         activeTintColor={activeColor}
         focused={pathname.includes('/orders/history')}
       />
+
+      <DrawerItem
+        label="Laporan Belanja"
+        icon={({ color }) => <MaterialCommunityIcons size={28} name="chart-bar" color={color} />}
+        onPress={() => router.push('/(drawer)/reports/spending')}
+        activeTintColor={activeColor}
+        focused={pathname.includes('/reports/spending')}
+      />
+
+      <DrawerItem
+        label="Pengeluaran"
+        icon={({ color }) => <MaterialCommunityIcons size={28} name="cash-multiple" color={color} />}
+        onPress={() => router.push('/(drawer)/spendings')}
+        activeTintColor={activeColor}
+        focused={pathname.includes('/spendings')}
+      />
     </DrawerContentScrollView>
   );
 }
@@ -237,6 +253,68 @@ export default function DrawerLayout() {
           name="orders/detail"
           options={{
             title: 'Detail Pesanan',
+            drawerItemStyle: { height: 0, display: 'none' },
+            headerShown: true,
+          }}
+        />
+        <Drawer.Screen
+          name="reports"
+          options={{
+            title: 'Reports',
+            drawerLabel: 'Reports',
+            drawerIcon: ({ color }) => <MaterialCommunityIcons size={28} name="chart-bar" color={color} />,
+            headerShown: false,
+            drawerItemStyle: { height: 0, display: 'none' },
+          }}
+        />
+        <Drawer.Screen
+          name="reports/spending"
+          options={{
+            title: 'Laporan Belanja',
+            drawerLabel: 'Laporan Belanja',
+            drawerIcon: ({ color }) => <MaterialCommunityIcons size={28} name="chart-bar" color={color} />,
+            headerShown: true,
+          }}
+        />
+        <Drawer.Screen
+          name="spendings"
+          options={{
+            title: 'Pengeluaran',
+            drawerLabel: 'Pengeluaran',
+            drawerIcon: ({ color }) => <MaterialCommunityIcons size={28} name="cash-multiple" color={color} />,
+            headerShown: false,
+            drawerItemStyle: { height: 0, display: 'none' },
+          }}
+        />
+        <Drawer.Screen
+          name="spendings/index"
+          options={{
+            title: 'Pengeluaran',
+            drawerLabel: 'Pengeluaran',
+            drawerIcon: ({ color }) => <MaterialCommunityIcons size={28} name="cash-multiple" color={color} />,
+            headerShown: true,
+          }}
+        />
+        <Drawer.Screen
+          name="spendings/create"
+          options={{
+            title: 'Tambah Pengeluaran',
+            drawerItemStyle: { height: 0, display: 'none' },
+            headerShown: true,
+          }}
+        />
+        <Drawer.Screen
+          name="spendings/edit"
+          options={{
+            title: 'Edit Pengeluaran',
+            drawerItemStyle: { height: 0, display: 'none' },
+            headerShown: true,
+          }}
+        />
+        <Drawer.Screen
+          name="spendings/show"
+          options={{
+            title: 'Detail Pengeluaran',
             drawerItemStyle: { height: 0, display: 'none' },
             headerShown: true,
           }}

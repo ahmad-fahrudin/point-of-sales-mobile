@@ -81,6 +81,13 @@ export function ImagePicker({ value, onValueChange, onPickImage, label, error, d
           style={styles.imageButton}
           disabled={disabled}
         />
+        <Button
+          title="📷 Kamera"
+          variant="secondary"
+          onPress={handlePickFromCamera}
+          style={styles.imageButton}
+          disabled={disabled}
+        />
       </View>
 
       {error && <ThemedText style={styles.errorText}>{error}</ThemedText>}
