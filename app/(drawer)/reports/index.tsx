@@ -1,7 +1,6 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -10,15 +9,17 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { reportService } from '@/services/report.service';
 import type { DailyRevenue, ReportPeriod } from '@/types/report.type';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import {
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 
 export default function ReportsScreen() {
@@ -38,8 +39,10 @@ export default function ReportsScreen() {
   } = useReport();
 
   const [refreshing, setRefreshing] = useState(false);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
 
   // Refresh data when screen is focused
   useFocusEffect(
@@ -63,7 +66,9 @@ export default function ReportsScreen() {
 
   const applyCustomDateRange = () => {
     if (startDate && endDate) {
-      setDateRange(startDate, endDate);
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      setDateRange(startDateStr, endDateStr);
     }
   };
 
@@ -246,22 +251,28 @@ export default function ReportsScreen() {
             <View style={styles.dateRangeContainer}>
               <View style={styles.dateInputWrapper}>
                 <ThemedText style={styles.dateLabel}>Dari Tanggal</ThemedText>
-                <Input
-                  value={startDate}
-                  onChangeText={setStartDate}
-                  placeholder="YYYY-MM-DD"
-                  style={styles.dateInput}
-                />
+                <TouchableOpacity
+                  style={[styles.datePickerButton, { backgroundColor: colorScheme === 'dark' ? '#2c2c2e' : '#fff' }]}
+                  onPress={() => setShowStartPicker(true)}
+                >
+                  <Text style={[styles.datePickerText, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
+                    {startDate ? reportService.formatDateShort(startDate) : 'Pilih tanggal'}
+                  </Text>
+                  <Ionicons name="calendar" size={20} color="#007AFF" />
+                </TouchableOpacity>
               </View>
               
               <View style={styles.dateInputWrapper}>
                 <ThemedText style={styles.dateLabel}>Sampai Tanggal</ThemedText>
-                <Input
-                  value={endDate}
-                  onChangeText={setEndDate}
-                  placeholder="YYYY-MM-DD"
-                  style={styles.dateInput}
-                />
+                <TouchableOpacity
+                  style={[styles.datePickerButton, { backgroundColor: colorScheme === 'dark' ? '#2c2c2e' : '#fff' }]}
+                  onPress={() => setShowEndPicker(true)}
+                >
+                  <Text style={[styles.datePickerText, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
+                    {endDate ? reportService.formatDateShort(endDate) : 'Pilih tanggal'}
+                  </Text>
+                  <Ionicons name="calendar" size={20} color="#007AFF" />
+                </TouchableOpacity>
               </View>
               
               <Button
@@ -269,6 +280,39 @@ export default function ReportsScreen() {
                 onPress={applyCustomDateRange}
                 style={styles.applyButton}
               />
+
+              {/* Start Date Picker */}
+              {showStartPicker && (
+                <DateTimePicker
+                  value={startDate || new Date()}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(event, selectedDate) => {
+                    setShowStartPicker(false);
+                    if (selectedDate) {
+                      setStartDate(selectedDate);
+                    }
+                  }}
+                  maximumDate={endDate || new Date()}
+                />
+              )}
+
+              {/* End Date Picker */}
+              {showEndPicker && (
+                <DateTimePicker
+                  value={endDate || new Date()}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(event, selectedDate) => {
+                    setShowEndPicker(false);
+                    if (selectedDate) {
+                      setEndDate(selectedDate);
+                    }
+                  }}
+                  minimumDate={startDate || undefined}
+                  maximumDate={new Date()}
+                />
+              )}
             </View>
           )}
         </View>
@@ -348,6 +392,21 @@ const styles = StyleSheet.create({
   },
   dateInput: {
     marginTop: 4,
+  },
+  datePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  datePickerText: {
+    fontSize: 16,
+    flex: 1,
   },
   applyButton: {
     marginTop: 8,

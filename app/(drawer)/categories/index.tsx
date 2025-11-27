@@ -1,37 +1,19 @@
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
-import { Pagination } from '@/components/ui/pagination';
-import { TableRowSkeleton } from '@/components/ui/skeleton';
+import { Table, TableAction, TableColumn } from '@/components/ui/table';
 import { useCategories } from '@/hooks/categories/use-categories';
-import { useThemeColor } from '@/hooks/use-theme-color';
 import { categoryService } from '@/services/category.service';
 import type { Category } from '@/types/category.type';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Toast from 'react-native-toast-message';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export default function CategoriesScreen() {
   const router = useRouter();
   const { categories, loading, error } = useCategories();
-  const borderColor = useThemeColor({ light: '#e0e0e0', dark: '#444' }, 'text');
-  const cardBg = useThemeColor({ light: '#fff', dark: '#1c1c1c' }, 'background');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
 
-  const paginatedCategories = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return categories.slice(startIndex, endIndex);
-  }, [categories, currentPage, itemsPerPage]);
-
-  const totalPages = Math.ceil(categories.length / itemsPerPage);
-
-  const handleDelete = async (categoryId: string, name: string) => {
-
-    const result = await categoryService.delete(categoryId);
+  const handleDelete = async (category: Category) => {
+    const result = await categoryService.delete(category.categoryId);
 
     if (result.success) {
       Toast.show({
@@ -50,160 +32,84 @@ export default function CategoriesScreen() {
     }
   };
 
-  const renderItem = ({ item }: { item: Category }) => (
-    <View style={[styles.tableRow, { borderBottomColor: borderColor, backgroundColor: cardBg }]}>
-      <View style={styles.tableCell}>
+  // Define table columns
+  const columns: TableColumn<Category>[] = [
+    {
+      key: 'name',
+      label: 'Nama Kategori',
+      flex: 1,
+      render: (item) => (
         <ThemedText style={styles.cellText}>{item.name}</ThemedText>
-      </View>
-      {/* parent removed */}
-      <View style={styles.actionCell}>
-        <Pressable style={styles.actionButton} onPress={() => router.push(`/categories/edit?id=${item.categoryId}`)}>
-          <Icon name="edit" size={20} color="#2196F3" />
-        </Pressable>
-        <Pressable
-          style={styles.actionButton}
-          onPress={() => {
-            handleDelete(item.categoryId, item.name);
-          }}
-        >
-          <Icon name="delete" size={20} color="#f44336" />
-        </Pressable>
-      </View>
+      ),
+    },
+  ];
+
+  // Define table actions
+  const actions: TableAction<Category>[] = [
+    {
+      icon: 'create-outline',
+      color: '#2196F3',
+      onPress: (item) => router.push(`/categories/edit?id=${item.categoryId}`),
+    },
+    {
+      icon: 'trash-outline',
+      color: '#f44336',
+      onPress: handleDelete,
+    },
+  ];
+
+  // Search filter function
+  const handleSearch = (searchTerm: string) => {
+    return categories.filter((category) =>
+      category.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  };
+
+  // Header component
+  const headerComponent = (
+    <View style={styles.headerRight}>
+      <Button
+        title="Tambah Kategori"
+        onPress={() => router.push('/categories/create')}
+        style={styles.addButton}
+      />
     </View>
   );
 
-  if (loading) {
-    return (
-      <ThemedView style={styles.container}>
-        <View style={styles.headerRight}>
-          <Button title="Tambah Kategori" onPress={() => router.push('/categories/create')} style={styles.addButton} />
-        </View>
-
-        <View style={styles.tableContainer}>
-          <View style={[styles.tableHeader, { borderBottomColor: borderColor, backgroundColor: cardBg }]}>
-            <View style={styles.tableCell}>
-              <ThemedText style={styles.headerText}>Nama Kategori</ThemedText>
-            </View>
-            <View style={styles.actionCell}>
-              <ThemedText style={styles.headerText}>Aksi</ThemedText>
-            </View>
-          </View>
-
-          {[1, 2, 3, 4, 5].map((i) => (
-            <TableRowSkeleton key={i} />
-          ))}
-        </View>
-      </ThemedView>
-    );
-  }
-
-  if (error) {
-    return (
-      <ThemedView style={styles.centerContainer}>
-        <ThemedText style={{ color: '#f44336' }}>{error}</ThemedText>
-      </ThemedView>
-    );
-  }
-
   return (
-    <ThemedView style={styles.container}>
-      <View style={styles.headerRight}>
-        <Button title="Tambah Kategori" onPress={() => router.push('/categories/create')} style={styles.addButton} />
-      </View>
-
-      <View style={styles.tableContainer}>
-        <View style={[styles.tableHeader, { borderBottomColor: borderColor, backgroundColor: cardBg }]}>
-          <View style={styles.tableCell}>
-            <ThemedText style={styles.headerText}>Nama Kategori</ThemedText>
-          </View>
-          <View style={styles.actionCell}>
-            <ThemedText style={styles.headerText}>Aksi</ThemedText>
-          </View>
-        </View>
-
-        <FlatList
-          data={paginatedCategories}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.categoryId}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <ThemedText>Tidak ada data kategori</ThemedText>
-            </View>
-          }
-        />
-
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          itemsPerPage={itemsPerPage}
-          totalItems={categories.length}
-        />
-      </View>
-    </ThemedView>
+    <View style={styles.container}>
+      <Table
+        columns={columns}
+        data={categories}
+        actions={actions}
+        loading={loading}
+        error={error || undefined}
+        emptyMessage="Tidak ada data kategori"
+        emptyIcon="list-outline"
+        keyExtractor={(item) => item.categoryId}
+        onSearch={handleSearch}
+        enableSearch={true}
+        searchPlaceholder="Cari nama kategori..."
+        headerComponent={headerComponent}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   headerRight: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    marginBottom: 16,
   },
   addButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
-  tableContainer: {
-    flex: 1,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    borderBottomWidth: 2,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-  },
-  tableCell: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  actionCell: {
-    width: 100,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-  },
-  headerText: {
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
   cellText: {
     fontSize: 14,
-  },
-  actionButton: {
-    padding: 4,
-  },
-  emptyContainer: {
-    padding: 32,
-    alignItems: 'center',
   },
 });
