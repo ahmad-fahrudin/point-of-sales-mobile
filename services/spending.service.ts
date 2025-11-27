@@ -1,28 +1,29 @@
 import { db } from '@/config/firebase';
 import type {
-    ApiResponse,
-    CreateSpendingInput,
-    FirestoreSpending,
-    Spending,
-    UpdateSpendingInput,
+  ApiResponse,
+  CreateSpendingInput,
+  FirestoreSpending,
+  Spending,
+  UpdateSpendingInput,
 } from '@/types/spending.type';
 import * as FileSystem from 'expo-file-system/next';
 import * as ImagePicker from 'expo-image-picker';
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    DocumentData,
-    getDoc,
-    getDocs,
-    onSnapshot,
-    orderBy,
-    query,
-    QuerySnapshot,
-    updateDoc,
-    where,
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  DocumentData,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  orderBy,
+  query,
+  QuerySnapshot,
+  updateDoc,
+  where,
 } from 'firebase/firestore';
+import { reportService } from './report.service';
 
 /**
  * Spending Service Layer
@@ -44,6 +45,9 @@ export const spendingService = {
 
       const docRef = await addDoc(collection(db, 'spendings'), data);
 
+      // Update daily revenue with new spending total
+      await this.syncDailyRevenue(input.spendingDate);
+
       return {
         success: true,
         data: docRef.id,
@@ -62,6 +66,10 @@ export const spendingService = {
    */
   async update(id: string, input: UpdateSpendingInput): Promise<ApiResponse<void>> {
     try {
+      // Get old spending data to check if date changed
+      const oldDoc = await getDoc(doc(db, 'spendings', id));
+      const oldDate = oldDoc.exists() ? oldDoc.data().spendingDate : null;
+
       await updateDoc(doc(db, 'spendings', id), {
         description: input.description.trim(),
         totalAmount: input.totalAmount,
@@ -69,6 +77,12 @@ export const spendingService = {
         imagePath: input.imagePath,
         updatedAt: new Date().toISOString(),
       });
+
+      // Update daily revenue for both old and new dates
+      if (oldDate && oldDate !== input.spendingDate) {
+        await this.syncDailyRevenue(oldDate);
+      }
+      await this.syncDailyRevenue(input.spendingDate);
 
       return { success: true };
     } catch (error) {
@@ -85,12 +99,22 @@ export const spendingService = {
    */
   async delete(id: string, imagePath?: string): Promise<ApiResponse<void>> {
     try {
+      // Get spending date before deleting
+      const docSnap = await getDoc(doc(db, 'spendings', id));
+      const spendingDate = docSnap.exists() ? docSnap.data().spendingDate : null;
+
       // Delete receipt image from local storage if exists
       if (imagePath) {
         await this.deleteImage(imagePath);
       }
 
       await deleteDoc(doc(db, 'spendings', id));
+
+      // Update daily revenue if date exists
+      if (spendingDate) {
+        await this.syncDailyRevenue(spendingDate);
+      }
+
       return { success: true };
     } catch (error) {
       console.error('Error deleting spending:', error);
@@ -352,4 +376,30 @@ export const spendingService = {
   calculateTotal(spendings: Spending[]): number {
     return spendings.reduce((sum, spending) => sum + spending.totalAmount, 0);
   },
+
+  /**
+   * Sync spending total with daily revenue
+   */
+  async syncDailyRevenue(date: string): Promise<void> {
+    try {
+      // Get all spendings for this date
+      const q = query(
+        collection(db, 'spendings'),
+        where('spendingDate', '==', date)
+      );
+      const snapshot = await getDocs(q);
+
+      // Calculate total spending
+      const totalSpending = snapshot.docs.reduce(
+        (sum, doc) => sum + (doc.data().totalAmount || 0),
+        0
+      );
+
+      // Update daily revenue
+      await reportService.updateSpendingTotal(date, totalSpending);
+    } catch (error) {
+      console.error('Error syncing daily revenue:', error);
+    }
+  },
 };
+

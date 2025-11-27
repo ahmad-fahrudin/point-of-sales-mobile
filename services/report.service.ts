@@ -1,99 +1,228 @@
 import { db } from '@/config/firebase';
-import type { FirestoreOrder, Order } from '@/types/order.type';
-import type { ApiResponse, DateRangeFilter, SpendingReport } from '@/types/report.type';
+import type {
+  ApiResponse,
+  DailyRevenue,
+  FirestoreDailyRevenue,
+  ReportData,
+  ReportFilter,
+  ReportSummary,
+} from '@/types/report.type';
 import {
-    collection,
-    getDocs,
-    orderBy,
-    query,
-    where
+  collection,
+  doc,
+  DocumentData,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  orderBy,
+  query,
+  QuerySnapshot,
+  updateDoc,
+  where,
 } from 'firebase/firestore';
 
 /**
  * Report Service Layer
- * Handles all Firebase Firestore operations for reports and analytics
+ * Handles all Firebase Firestore operations for revenue reports and analytics
  */
 export const reportService = {
   /**
-   * Get spending report by date range
+   * Get daily revenues with filters and pagination
    */
-  async getSpendingReport(dateRange: DateRangeFilter): Promise<ApiResponse<SpendingReport>> {
+  async getReports(
+    filter: ReportFilter,
+    page: number = 1,
+    pageSize: number = 10
+  ): Promise<ApiResponse<ReportData>> {
     try {
-      // Convert dates to ISO strings for comparison
-      const startDateISO = dateRange.startDate.toISOString();
-      const endDateISO = new Date(dateRange.endDate.setHours(23, 59, 59, 999)).toISOString();
-
-      // Query orders within date range
+      // Build query with date range
       const q = query(
-        collection(db, 'orders'),
-        where('createdAt', '>=', startDateISO),
-        where('createdAt', '<=', endDateISO),
-        orderBy('createdAt', 'desc')
+        collection(db, 'daily_revenues'),
+        where('date', '>=', filter.startDate),
+        where('date', '<=', filter.endDate),
+        orderBy('date', 'desc')
       );
 
       const snapshot = await getDocs(q);
 
-      const orders: Order[] = snapshot.docs.map((doc) => ({
-        orderId: doc.id,
-        ...(doc.data() as FirestoreOrder),
+      // Map to DailyRevenue objects
+      const allRevenues: DailyRevenue[] = snapshot.docs.map((doc) => ({
+        dailyRevenueId: doc.id,
+        ...(doc.data() as FirestoreDailyRevenue),
       }));
 
-      // Calculate totals
-      const totalOrders = orders.length;
-      const totalSpending = orders.reduce((sum, order) => sum + order.totalAmount, 0);
-
-      const report: SpendingReport = {
-        orders,
-        totalOrders,
-        totalSpending,
-        dateRange,
+      // Calculate summary
+      const summary: ReportSummary = {
+        totalRevenue: allRevenues.reduce((sum, r) => sum + r.totalRevenue, 0),
+        totalSpending: allRevenues.reduce((sum, r) => sum + r.totalSpending, 0),
+        netRevenue: allRevenues.reduce((sum, r) => sum + r.netRevenue, 0),
+        totalOrders: allRevenues.reduce((sum, r) => sum + r.totalOrders, 0),
+        averageOrderValue: 0,
       };
+
+      // Calculate average order value
+      summary.averageOrderValue =
+        summary.totalOrders > 0 ? summary.totalRevenue / summary.totalOrders : 0;
+
+      // Paginate
+      const totalRecords = allRevenues.length;
+      const totalPages = Math.ceil(totalRecords / pageSize);
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedRevenues = allRevenues.slice(startIndex, endIndex);
 
       return {
         success: true,
-        data: report,
+        data: {
+          dailyRevenues: paginatedRevenues,
+          summary,
+          currentPage: page,
+          totalPages,
+          totalRecords,
+        },
       };
     } catch (error) {
-      console.error('Error fetching spending report:', error);
+      console.error('Error fetching reports:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Gagal memuat laporan belanja',
+        error: error instanceof Error ? error.message : 'Gagal memuat laporan',
       };
     }
   },
 
   /**
-   * Get spending report for today
+   * Get a single daily revenue by ID
    */
-  async getTodaySpendingReport(): Promise<ApiResponse<SpendingReport>> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const endDate = new Date();
-    endDate.setHours(23, 59, 59, 999);
+  async getById(id: string): Promise<ApiResponse<DailyRevenue>> {
+    try {
+      const docSnap = await getDoc(doc(db, 'daily_revenues', id));
 
-    return this.getSpendingReport({
-      startDate: today,
-      endDate: endDate,
-    });
+      if (!docSnap.exists()) {
+        return {
+          success: false,
+          error: 'Data laporan tidak ditemukan',
+        };
+      }
+
+      const dailyRevenue: DailyRevenue = {
+        dailyRevenueId: docSnap.id,
+        ...(docSnap.data() as FirestoreDailyRevenue),
+      };
+
+      return {
+        success: true,
+        data: dailyRevenue,
+      };
+    } catch (error) {
+      console.error('Error fetching daily revenue:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Gagal memuat laporan',
+      };
+    }
   },
 
   /**
-   * Get spending report for this month
+   * Update spending total for a specific date
+   * Called when spendings are created/updated/deleted
    */
-  async getMonthlySpendingReport(): Promise<ApiResponse<SpendingReport>> {
-    const startDate = new Date();
-    startDate.setDate(1);
-    startDate.setHours(0, 0, 0, 0);
+  async updateSpendingTotal(date: string, totalSpending: number): Promise<ApiResponse<void>> {
+    try {
+      // Find daily revenue record for this date
+      const q = query(collection(db, 'daily_revenues'), where('date', '==', date));
+      const snapshot = await getDocs(q);
 
-    const endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + 1, 0);
-    endDate.setHours(23, 59, 59, 999);
+      if (!snapshot.empty) {
+        const docRef = doc(db, 'daily_revenues', snapshot.docs[0].id);
+        const currentData = snapshot.docs[0].data();
+        const newNetRevenue = (currentData.totalRevenue || 0) - totalSpending;
 
-    return this.getSpendingReport({
-      startDate,
-      endDate,
-    });
+        await updateDoc(docRef, {
+          totalSpending,
+          netRevenue: newNetRevenue,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating spending total:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Gagal memperbarui total pengeluaran',
+      };
+    }
+  },
+
+  /**
+   * Subscribe to real-time report updates
+   */
+  subscribe(
+    filter: ReportFilter,
+    onUpdate: (revenues: DailyRevenue[]) => void,
+    onError: (error: string) => void
+  ): () => void {
+    const q = query(
+      collection(db, 'daily_revenues'),
+      where('date', '>=', filter.startDate),
+      where('date', '<=', filter.endDate),
+      orderBy('date', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot: QuerySnapshot<DocumentData>) => {
+        const revenues: DailyRevenue[] = snapshot.docs.map((doc) => ({
+          dailyRevenueId: doc.id,
+          ...(doc.data() as FirestoreDailyRevenue),
+        }));
+        onUpdate(revenues);
+      },
+      (error) => {
+        console.error('Error in report subscription:', error);
+        onError(error.message);
+      }
+    );
+
+    return unsubscribe;
+  },
+
+  /**
+   * Generate date range for filter period
+   */
+  getDateRange(period: 'daily' | 'weekly' | 'monthly'): { startDate: string; endDate: string } {
+    const today = new Date();
+    const endDate = today.toISOString().split('T')[0];
+    let startDate: string;
+
+    switch (period) {
+      case 'daily':
+        // Last 7 days
+        const lastWeek = new Date(today);
+        lastWeek.setDate(today.getDate() - 6);
+        startDate = lastWeek.toISOString().split('T')[0];
+        break;
+
+      case 'weekly':
+        // Last 4 weeks (28 days)
+        const lastMonth = new Date(today);
+        lastMonth.setDate(today.getDate() - 27);
+        startDate = lastMonth.toISOString().split('T')[0];
+        break;
+
+      case 'monthly':
+        // Last 12 months
+        const lastYear = new Date(today);
+        lastYear.setMonth(today.getMonth() - 11);
+        lastYear.setDate(1);
+        startDate = lastYear.toISOString().split('T')[0];
+        break;
+
+      default:
+        startDate = endDate;
+    }
+
+    return { startDate, endDate };
   },
 
   /**
@@ -121,16 +250,14 @@ export const reportService = {
   },
 
   /**
-   * Format date and time to Indonesian format
+   * Format date to short format
    */
-  formatDateTime(date: string | Date): string {
+  formatDateShort(date: string | Date): string {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     return new Intl.DateTimeFormat('id-ID', {
       day: '2-digit',
-      month: 'long',
+      month: 'short',
       year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     }).format(dateObj);
   },
 };

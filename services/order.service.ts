@@ -1,17 +1,21 @@
 import { db } from '@/config/firebase';
 import type { ApiResponse, CreateOrderInput, FirestoreOrder, Order } from '@/types/order.type';
+import type { FirestoreDailyRevenue } from '@/types/report.type';
 import {
-    addDoc,
-    collection,
-    doc,
-    DocumentData,
-    getDoc,
-    getDocs,
-    limit,
-    onSnapshot,
-    orderBy,
-    query,
-    QuerySnapshot,
+  addDoc,
+  collection,
+  doc,
+  DocumentData,
+  getDoc,
+  getDocs,
+  increment,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+  QuerySnapshot,
+  updateDoc,
+  where,
 } from 'firebase/firestore';
 
 /**
@@ -36,6 +40,9 @@ export const orderService = {
 
       const docRef = await addDoc(collection(db, 'orders'), data);
 
+      // Update daily revenue record
+      await this.updateDailyRevenue(input.totalAmount);
+
       return {
         success: true,
         data: docRef.id,
@@ -46,6 +53,52 @@ export const orderService = {
         success: false,
         error: error instanceof Error ? error.message : 'Gagal membuat pesanan',
       };
+    }
+  },
+
+  /**
+   * Update or create daily revenue record
+   */
+  async updateDailyRevenue(totalAmount: number): Promise<void> {
+    try {
+      // Get today's date in YYYY-MM-DD format
+      const today = new Date().toISOString().split('T')[0];
+
+      // Check if daily revenue record exists
+      const q = query(
+        collection(db, 'daily_revenues'),
+        where('date', '==', today)
+      );
+      const snapshot = await getDocs(q);
+
+      if (snapshot.empty) {
+        // Create new daily revenue record
+        const data: FirestoreDailyRevenue = {
+          date: today,
+          totalRevenue: totalAmount,
+          totalOrders: 1,
+          totalSpending: 0,
+          netRevenue: totalAmount,
+          createdAt: new Date().toISOString(),
+        };
+        await addDoc(collection(db, 'daily_revenues'), data);
+      } else {
+        // Update existing daily revenue record
+        const docRef = doc(db, 'daily_revenues', snapshot.docs[0].id);
+        const currentData = snapshot.docs[0].data();
+        const newTotalRevenue = currentData.totalRevenue + totalAmount;
+        const newNetRevenue = newTotalRevenue - (currentData.totalSpending || 0);
+
+        await updateDoc(docRef, {
+          totalRevenue: newTotalRevenue,
+          totalOrders: increment(1),
+          netRevenue: newNetRevenue,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    } catch (error) {
+      console.error('Error updating daily revenue:', error);
+      // Don't throw error to prevent order creation from failing
     }
   },
 

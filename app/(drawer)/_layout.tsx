@@ -102,11 +102,11 @@ function CustomDrawerContent(props: any) {
         />
 
         <DrawerItem
-          label="Laporan Belanja"
+          label="Laporan Pendapatan"
           icon={({ color }) => <MaterialCommunityIcons size={28} name="chart-bar" color={color} />}
-          onPress={() => router.push('/(drawer)/reports/spending')}
+          onPress={() => router.push('/(drawer)/reports')}
           activeTintColor={activeColor}
-          focused={pathname.includes('/reports/spending')}
+          focused={pathname.includes('/reports')}
         />
 
         <DrawerItem
@@ -314,10 +314,10 @@ export default function DrawerLayout() {
           }}
         />
         <Drawer.Screen
-          name="reports/spending"
+          name="reports/index"
           options={{
-            title: 'Laporan Belanja',
-            drawerLabel: 'Laporan Belanja',
+            title: 'Laporan Pendapatan',
+            drawerLabel: 'Laporan Pendapatan',
             drawerIcon: ({ color }) => <MaterialCommunityIcons size={28} name="chart-bar" color={color} />,
             headerShown: true,
           }}
