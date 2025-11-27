@@ -5,31 +5,44 @@ import { useCategories } from '@/hooks/categories/use-categories';
 import { categoryService } from '@/services/category.service';
 import type { Category } from '@/types/category.type';
 import { useRouter } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 
 export default function CategoriesScreen() {
   const router = useRouter();
   const { categories, loading, error } = useCategories();
 
-  const handleDelete = async (category: Category) => {
-    const result = await categoryService.delete(category.categoryId);
+  const handleDelete = (category: Category) => {
+    Alert.alert(
+      'Konfirmasi Hapus',
+      `Apakah Anda yakin ingin menghapus kategori "${category.name}"?`,
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Hapus',
+          style: 'destructive',
+          onPress: async () => {
+            const result = await categoryService.delete(category.categoryId);
 
-    if (result.success) {
-      Toast.show({
-        type: 'success',
-        text1: 'Berhasil',
-        text2: 'Kategori berhasil dihapus',
-        position: 'top',
-      });
-    } else {
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: result.error || 'Gagal menghapus kategori',
-        position: 'top',
-      });
-    }
+            if (result.success) {
+              Toast.show({
+                type: 'success',
+                text1: 'Berhasil',
+                text2: 'Kategori berhasil dihapus',
+                position: 'top',
+              });
+            } else {
+              Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: result.error || 'Gagal menghapus kategori',
+                position: 'top',
+              });
+            }
+          },
+        },
+      ]
+    );
   };
 
   // Define table columns

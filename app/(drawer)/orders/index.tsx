@@ -131,7 +131,20 @@ export default function OrdersScreen() {
 
         <Text style={styles.subtotal}>Rp {item.subtotal.toLocaleString('id-ID')}</Text>
 
-        <TouchableOpacity onPress={() => removeFromCart(item.productId)} style={styles.deleteButton}>
+        <TouchableOpacity onPress={() => {
+          Alert.alert(
+            'Konfirmasi Hapus',
+            `Apakah Anda yakin ingin menghapus "${item.productName}" dari keranjang?`,
+            [
+              { text: 'Batal', style: 'cancel' },
+              {
+                text: 'Hapus',
+                style: 'destructive',
+                onPress: () => removeFromCart(item.productId),
+              },
+            ]
+          );
+        }} style={styles.deleteButton}>
           <Ionicons name="trash-outline" size={20} color="#ff3b30" />
         </TouchableOpacity>
       </View>

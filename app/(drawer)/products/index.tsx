@@ -7,7 +7,7 @@ import { productService } from '@/services/product.service';
 import type { Product } from '@/types/product.type';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Image, StyleSheet, View } from 'react-native';
+import { Alert, Image, StyleSheet, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 
 export default function ProductsScreen() {
@@ -15,24 +15,37 @@ export default function ProductsScreen() {
   const { products, loading, error, getCategoryName } = useProducts();
   const { categories } = useCategories();
 
-  const handleDelete = async (product: Product) => {
-    const result = await productService.delete(product.productId, product.image_path);
+  const handleDelete = (product: Product) => {
+    Alert.alert(
+      'Konfirmasi Hapus',
+      `Apakah Anda yakin ingin menghapus produk "${product.name}"?`,
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Hapus',
+          style: 'destructive',
+          onPress: async () => {
+            const result = await productService.delete(product.productId, product.image_path);
 
-    if (result.success) {
-      Toast.show({
-        type: 'success',
-        text1: 'Berhasil',
-        text2: 'Produk berhasil dihapus',
-        position: 'top',
-      });
-    } else {
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: result.error || 'Gagal menghapus produk',
-        position: 'top',
-      });
-    }
+            if (result.success) {
+              Toast.show({
+                type: 'success',
+                text1: 'Berhasil',
+                text2: 'Produk berhasil dihapus',
+                position: 'top',
+              });
+            } else {
+              Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: result.error || 'Gagal menghapus produk',
+                position: 'top',
+              });
+            }
+          },
+        },
+      ]
+    );
   };
 
   // Define table columns
