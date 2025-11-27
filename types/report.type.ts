@@ -19,7 +19,7 @@ export interface DailyRevenue {
 export type FirestoreDailyRevenue = Omit<DailyRevenue, 'dailyRevenueId'>;
 
 // Report filter period
-export type ReportPeriod = 'daily' | 'weekly' | 'monthly';
+export type ReportPeriod = 'daily' | 'weekly' | 'monthly' | 'custom';
 
 // Report filter
 export interface ReportFilter {

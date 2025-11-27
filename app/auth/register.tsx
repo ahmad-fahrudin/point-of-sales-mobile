@@ -6,7 +6,7 @@ import { auth } from '@/config/firebase';
 import { router } from 'expo-router';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export default function RegisterScreen() {
@@ -78,7 +78,7 @@ export default function RegisterScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <ThemedView style={styles.content}>
           <View style={styles.iconContainer}>
-            <Icon name="person-add" size={80} color="#007AFF" />
+            <Image source={require('@/assets/logo.png')} style={styles.logo} resizeMode="contain" />
           </View>
           <ThemedText type="title" style={styles.title}>
             Daftar Akun Baru
@@ -171,7 +171,11 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 8,
+  },
+  logo: {
+    width: 250,
+    height: 250,
   },
   title: {
     textAlign: 'center',

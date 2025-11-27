@@ -7,7 +7,7 @@ import { useGoogleSignIn } from '@/hooks/use-google-signin';
 import { router } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export default function LoginScreen() {
@@ -82,7 +82,7 @@ export default function LoginScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <ThemedView style={styles.content}>
           <View style={styles.iconContainer}>
-            <Icon name="lock-outline" size={80} color="#007AFF" />
+            <Image source={require('@/assets/logo.png')} style={styles.logo} resizeMode="contain" />
           </View>
           <ThemedText type="title" style={styles.title}>
             Selamat Datang
@@ -140,6 +140,13 @@ export default function LoginScreen() {
               disabled={loading || googleLoading}
               variant="secondary"
               style={styles.googleButton}
+              leftIcon={
+                <Image
+                  source={require('@/assets/icon/icon-google.png')}
+                  style={{ width: 20, height: 20 }}
+                  resizeMode="contain"
+                />
+              }
             />
 
             <View style={styles.registerContainer}>
@@ -173,7 +180,11 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 8,
+  },
+  logo: {
+    width: 250,
+    height: 250,
   },
   title: {
     textAlign: 'center',

@@ -4,7 +4,7 @@ import { DrawerContentScrollView, DrawerItem } from '@react-navigation/drawer';
 import { usePathname, useRouter } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
 import React, { useState } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -13,6 +13,7 @@ function CustomDrawerContent(props: any) {
   const pathname = usePathname();
   const colorScheme = useColorScheme();
   const [setupExpanded, setSetupExpanded] = useState(false);
+  // Static title (no marquee)
 
   const activeColor = Colors[colorScheme ?? 'light'].tint;
   const inactiveColor = Colors[colorScheme ?? 'light'].icon;
@@ -36,6 +37,10 @@ function CustomDrawerContent(props: any) {
   return (
     // Wrap scroll + footer in a container so the footer can be static at the bottom
     <View style={{ flex: 1 }}>
+      <View style={styles.logoContainer}>
+        <Image source={require('@/assets/logo.png')} style={styles.logo} resizeMode="contain" />
+        <Text style={styles.marqueeText}>Warung Anggoro</Text>
+      </View>
       <DrawerContentScrollView {...props} contentContainerStyle={{ flexGrow: 1 }}>
         <DrawerItem
           label="Home"
@@ -135,12 +140,35 @@ function CustomDrawerContent(props: any) {
 }
 
 const styles = StyleSheet.create({
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 20,
+    paddingLeft: 16,
+    paddingRight: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e6e6e6',
+  },
+  logo: {
+    width: 100,
+    height: 100,
+    marginRight: 10,
+  },
+  marqueeText: {
+    flex: 1,
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#e6e6e6',
+    textAlign: 'left',
+  },
   dropdownHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 9,
+    paddingTop: 12,
+    paddingBottom: 12,
+    paddingLeft: 9,
+    paddingRight: 9,
     marginHorizontal: 8,
   },
   dropdownHeaderContent: {
@@ -165,8 +193,8 @@ const styles = StyleSheet.create({
   logoutContainer: {
     borderTopWidth: 1,
     borderTopColor: '#e6e6e6',
-    paddingVertical: 8,
-    paddingBottom: 16, 
+    paddingTop: 8,
+    paddingBottom: 16,
     alignSelf: 'stretch',
   },
   // shift logout item a bit to the right

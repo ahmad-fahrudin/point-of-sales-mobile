@@ -8,7 +8,7 @@ import type { Order } from '@/types/order.type';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { FlatList, Modal, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export default function OrderHistoryScreen() {
@@ -16,7 +16,6 @@ export default function OrderHistoryScreen() {
   const { orders, loading, error } = useOrders();
   const borderColor = useThemeColor({ light: '#e0e0e0', dark: '#444' }, 'text');
   const cardBg = useThemeColor({ light: '#fff', dark: '#1c1c1c' }, 'background');
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -67,8 +66,8 @@ export default function OrderHistoryScreen() {
         </ThemedText>
       </View>
       <View style={styles.actionCell}>
-        <Pressable style={styles.dropdownButton} onPress={() => setSelectedOrder(item)}>
-          <Icon name="more-vert" size={24} color="#666" />
+        <Pressable style={styles.dropdownButton} onPress={() => router.push(`/orders/detail?id=${item.orderId}`)}>
+          <Icon name="visibility" size={24} color="#4CAF50" />
         </Pressable>
       </View>
     </View>
@@ -114,60 +113,40 @@ export default function OrderHistoryScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <Modal
-        visible={selectedOrder !== null}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setSelectedOrder(null)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setSelectedOrder(null)}>
-          <View style={[styles.modalContent, { backgroundColor: cardBg, borderColor }]}>
-            <TouchableOpacity
-              style={styles.modalItem}
-              onPress={() => {
-                if (selectedOrder) {
-                  router.push(`/orders/detail?id=${selectedOrder.orderId}`);
-                  setSelectedOrder(null);
-                }
-              }}
-            >
-              <Icon name="visibility" size={20} color="#4CAF50" />
-              <ThemedText style={styles.modalText}>Lihat Detail</ThemedText>
-            </TouchableOpacity>
-          </View>
-        </Pressable>
-      </Modal>
-
       <View style={styles.tableContainer}>
-        <View style={[styles.tableHeader, { borderBottomColor: borderColor, backgroundColor: cardBg }]}>
-          <View style={styles.tableCell}>
-            <ThemedText style={styles.headerText}>Tanggal</ThemedText>
-          </View>
-          <View style={styles.tableCell}>
-            <ThemedText style={styles.headerText}>Pelanggan</ThemedText>
-          </View>
-          <View style={styles.tableCell}>
-            <ThemedText style={styles.headerText}>Item</ThemedText>
-          </View>
-          <View style={styles.tableCell}>
-            <ThemedText style={styles.headerText}>Total</ThemedText>
-          </View>
-          <View style={styles.actionCell}>
-            <ThemedText style={styles.headerText}>Aksi</ThemedText>
-          </View>
-        </View>
-
-        <FlatList
-          data={paginatedOrders}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.orderId}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Ionicons name="receipt-outline" size={64} color="#ccc" />
-              <ThemedText style={styles.emptyText}>Belum ada riwayat transaksi</ThemedText>
+        <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+          <View style={styles.tableWrapper}>
+            <View style={[styles.tableHeader, { borderBottomColor: borderColor, backgroundColor: cardBg }]}>
+              <View style={styles.tableCell}>
+                <ThemedText style={styles.headerText}>Tanggal</ThemedText>
+              </View>
+              <View style={styles.tableCell}>
+                <ThemedText style={styles.headerText}>Pelanggan</ThemedText>
+              </View>
+              <View style={styles.tableCell}>
+                <ThemedText style={styles.headerText}>Item</ThemedText>
+              </View>
+              <View style={styles.tableCell}>
+                <ThemedText style={styles.headerText}>Total</ThemedText>
+              </View>
+              <View style={styles.actionCell}>
+                <ThemedText style={styles.headerText}>Aksi</ThemedText>
+              </View>
             </View>
-          }
-        />
+
+            <FlatList
+              data={paginatedOrders}
+              renderItem={renderItem}
+              keyExtractor={(item) => item.orderId}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Ionicons name="receipt-outline" size={64} color="#ccc" />
+                  <ThemedText style={styles.emptyText}>Belum ada riwayat transaksi</ThemedText>
+                </View>
+              }
+            />
+          </View>
+        </ScrollView>
 
         <Pagination
           currentPage={currentPage}
@@ -194,6 +173,9 @@ const styles = StyleSheet.create({
   tableContainer: {
     flex: 1,
     borderRadius: 8,
+  },
+  tableWrapper: {
+    minWidth: 600,
   },
   tableHeader: {
     flexDirection: 'row',
@@ -230,33 +212,6 @@ const styles = StyleSheet.create({
   },
   dropdownButton: {
     padding: 8,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingVertical: 8,
-    minWidth: 200,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  modalItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    gap: 12,
-  },
-  modalText: {
-    fontSize: 16,
   },
   emptyContainer: {
     padding: 32,

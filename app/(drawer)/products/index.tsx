@@ -10,7 +10,7 @@ import { productService } from '@/services/product.service';
 import type { Product } from '@/types/product.type';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { FlatList, Image, Modal, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FlatList, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
@@ -20,7 +20,6 @@ export default function ProductsScreen() {
   const { categories } = useCategories();
   const borderColor = useThemeColor({ light: '#e0e0e0', dark: '#444' }, 'text');
   const cardBg = useThemeColor({ light: '#fff', dark: '#1c1c1c' }, 'background');
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -73,10 +72,21 @@ export default function ProductsScreen() {
       <View style={styles.tableCell}>
         <ThemedText style={styles.cellText}>{getCategoryName(item.categoryId, categories)}</ThemedText>
       </View>
+      <View style={styles.tableCell}>
+        <ThemedText style={styles.cellText}>{item.stock}</ThemedText>
+      </View>
       <View style={styles.actionCell}>
-        <Pressable style={styles.dropdownButton} onPress={() => setSelectedProduct(item)}>
-          <Icon name="more-vert" size={24} color="#666" />
-        </Pressable>
+        <View style={styles.actionButtons}>
+          <Pressable style={styles.actionButton} onPress={() => router.push(`/products/show?id=${item.productId}`)}>
+            <Icon name="visibility" size={20} color="#4CAF50" />
+          </Pressable>
+          <Pressable style={styles.actionButton} onPress={() => router.push(`/products/edit?id=${item.productId}`)}>
+            <Icon name="edit" size={20} color="#2196F3" />
+          </Pressable>
+          <Pressable style={styles.actionButton} onPress={() => handleDelete(item.productId, item.name, item.image_path)}>
+            <Icon name="delete" size={20} color="#f44336" />
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -89,7 +99,9 @@ export default function ProductsScreen() {
         </View>
 
         <View style={styles.tableContainer}>
-          <View style={[styles.tableHeader, { borderBottomColor: borderColor, backgroundColor: cardBg }]}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+            <View style={styles.tableWrapper}>
+              <View style={[styles.tableHeader, { borderBottomColor: borderColor, backgroundColor: cardBg }]}>
             <View style={styles.imageCell}>
               <ThemedText style={styles.headerText}>Gambar</ThemedText>
             </View>
@@ -99,6 +111,9 @@ export default function ProductsScreen() {
             <View style={styles.tableCell}>
               <ThemedText style={styles.headerText}>Kategori</ThemedText>
             </View>
+            <View style={styles.tableCell}>
+              <ThemedText style={styles.headerText}>Stock</ThemedText>
+            </View>
             <View style={styles.actionCell}>
               <ThemedText style={styles.headerText}>Aksi</ThemedText>
             </View>
@@ -107,6 +122,8 @@ export default function ProductsScreen() {
           {[1, 2, 3, 4, 5].map((i) => (
             <TableRowSkeleton key={i} />
           ))}
+            </View>
+          </ScrollView>
         </View>
       </ThemedView>
     );
@@ -126,61 +143,10 @@ export default function ProductsScreen() {
         <Button title="Tambah Produk" onPress={() => router.push('/products/create')} style={styles.addButton} />
       </View>
 
-      <Modal
-        visible={selectedProduct !== null}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setSelectedProduct(null)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setSelectedProduct(null)}>
-          <View style={[styles.modalContent, { backgroundColor: cardBg, borderColor }]}>
-            <TouchableOpacity
-              style={styles.modalItem}
-              onPress={() => {
-                if (selectedProduct) {
-                  router.push(`/products/show?id=${selectedProduct.productId}`);
-                  setSelectedProduct(null);
-                }
-              }}
-            >
-              <Icon name="visibility" size={20} color="#4CAF50" />
-              <ThemedText style={styles.modalText}>Lihat Detail</ThemedText>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.modalItem}
-              onPress={() => {
-                if (selectedProduct) {
-                  router.push(`/products/edit?id=${selectedProduct.productId}`);
-                  setSelectedProduct(null);
-                }
-              }}
-            >
-              <Icon name="edit" size={20} color="#2196F3" />
-              <ThemedText style={styles.modalText}>Edit</ThemedText>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.modalItem}
-              onPress={() => {
-                if (selectedProduct) {
-                  const product = selectedProduct;
-                  setSelectedProduct(null);
-                  setTimeout(() => {
-                    handleDelete(product.productId, product.name, product.image_path);
-                  }, 100);
-                }
-              }}
-            >
-              <Icon name="delete" size={20} color="#f44336" />
-              <ThemedText style={styles.modalText}>Hapus</ThemedText>
-            </TouchableOpacity>
-          </View>
-        </Pressable>
-      </Modal>
-
       <View style={styles.tableContainer}>
-        <View style={[styles.tableHeader, { borderBottomColor: borderColor, backgroundColor: cardBg }]}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+          <View style={styles.tableWrapper}>
+            <View style={[styles.tableHeader, { borderBottomColor: borderColor, backgroundColor: cardBg }]}>
           <View style={styles.imageCell}>
             <ThemedText style={styles.headerText}>Gambar</ThemedText>
           </View>
@@ -189,6 +155,9 @@ export default function ProductsScreen() {
           </View>
           <View style={styles.tableCell}>
             <ThemedText style={styles.headerText}>Kategori</ThemedText>
+          </View>
+          <View style={styles.tableCell}>
+            <ThemedText style={styles.headerText}>Stock</ThemedText>
           </View>
           <View style={styles.actionCell}>
             <ThemedText style={styles.headerText}>Aksi</ThemedText>
@@ -205,6 +174,8 @@ export default function ProductsScreen() {
             </View>
           }
         />
+          </View>
+        </ScrollView>
 
         <Pagination
           currentPage={currentPage}
@@ -241,6 +212,9 @@ const styles = StyleSheet.create({
   tableContainer: {
     flex: 1,
     borderRadius: 8,
+  },
+  tableWrapper: {
+    minWidth: 500,
   },
   tableHeader: {
     flexDirection: 'row',
@@ -283,9 +257,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionCell: {
-    width: 80,
+    width: 120,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionButton: {
+    padding: 4,
   },
   headerText: {
     fontWeight: 'bold',
@@ -296,33 +277,6 @@ const styles = StyleSheet.create({
   },
   dropdownButton: {
     padding: 8,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingVertical: 8,
-    minWidth: 200,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  modalItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    gap: 12,
-  },
-  modalText: {
-    fontSize: 16,
   },
   emptyContainer: {
     padding: 32,

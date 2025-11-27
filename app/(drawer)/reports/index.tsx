@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,6 +30,7 @@ export default function ReportsScreen() {
     currentPage,
     period,
     changePeriod,
+    setDateRange,
     nextPage,
     previousPage,
     goToPage,
@@ -36,6 +38,8 @@ export default function ReportsScreen() {
   } = useReport();
 
   const [refreshing, setRefreshing] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   // Refresh data when screen is focused
   useFocusEffect(
@@ -54,7 +58,14 @@ export default function ReportsScreen() {
     { label: 'Harian (7 Hari)', value: 'daily' },
     { label: 'Mingguan (4 Minggu)', value: 'weekly' },
     { label: 'Bulanan (12 Bulan)', value: 'monthly' },
+    { label: 'Kustom', value: 'custom' },
   ];
+
+  const applyCustomDateRange = () => {
+    if (startDate && endDate) {
+      setDateRange(startDate, endDate);
+    }
+  };
 
   const renderSummaryCard = () => {
     if (!reportData) return null;
@@ -199,9 +210,13 @@ export default function ReportsScreen() {
 
     return (
       <View style={styles.tableContainer}>
-        {renderTableHeader()}
-        <ScrollView style={styles.tableBody}>
-          {reportData.dailyRevenues.map(renderTableRow)}
+        <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+          <View style={styles.tableWrapper}>
+            {renderTableHeader()}
+            <ScrollView style={styles.tableBody}>
+              {reportData.dailyRevenues.map(renderTableRow)}
+            </ScrollView>
+          </View>
         </ScrollView>
       </View>
     );
@@ -226,6 +241,36 @@ export default function ReportsScreen() {
             onValueChange={(value) => changePeriod(value as ReportPeriod)}
             placeholder="Pilih periode"
           />
+          
+          {period === 'custom' && (
+            <View style={styles.dateRangeContainer}>
+              <View style={styles.dateInputWrapper}>
+                <ThemedText style={styles.dateLabel}>Dari Tanggal</ThemedText>
+                <Input
+                  value={startDate}
+                  onChangeText={setStartDate}
+                  placeholder="YYYY-MM-DD"
+                  style={styles.dateInput}
+                />
+              </View>
+              
+              <View style={styles.dateInputWrapper}>
+                <ThemedText style={styles.dateLabel}>Sampai Tanggal</ThemedText>
+                <Input
+                  value={endDate}
+                  onChangeText={setEndDate}
+                  placeholder="YYYY-MM-DD"
+                  style={styles.dateInput}
+                />
+              </View>
+              
+              <Button
+                title="Terapkan"
+                onPress={applyCustomDateRange}
+                style={styles.applyButton}
+              />
+            </View>
+          )}
         </View>
 
         {/* Summary Cards */}
@@ -289,6 +334,23 @@ const styles = StyleSheet.create({
   },
   filterTitle: {
     marginBottom: 8,
+  },
+  dateRangeContainer: {
+    marginTop: 16,
+    gap: 12,
+  },
+  dateInputWrapper: {
+    gap: 4,
+  },
+  dateLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  dateInput: {
+    marginTop: 4,
+  },
+  applyButton: {
+    marginTop: 8,
   },
   summaryContainer: {
     marginHorizontal: 16,
@@ -364,6 +426,9 @@ const styles = StyleSheet.create({
   },
   tableContainer: {
     paddingHorizontal: 16,
+  },
+  tableWrapper: {
+    minWidth: 500,
   },
   tableHeader: {
     flexDirection: 'row',
