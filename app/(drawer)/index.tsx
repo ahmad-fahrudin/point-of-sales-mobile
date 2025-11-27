@@ -251,14 +251,16 @@ const styles = StyleSheet.create({
   },
   categoryScroll: {
     paddingHorizontal: 12,
-    marginBottom: 12,
+    paddingBottom: 16,
+    marginBottom: 16,
+    maxHeight: 52,
   },
   categoryChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    height: 32,
-    minWidth: 32,
-    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    height: 36,
+    minWidth: 60,
+    borderRadius: 18,
     borderWidth: 1,
     marginRight: 8,
     alignItems: 'center',
@@ -277,7 +279,7 @@ const styles = StyleSheet.create({
   },
   productList: {
     padding: 16,
-    paddingTop: 0,
+    paddingTop: 12,
   },
   productRow: {
     justifyContent: 'space-between',
