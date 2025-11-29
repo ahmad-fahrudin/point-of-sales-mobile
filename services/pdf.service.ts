@@ -18,6 +18,33 @@ export interface ReportData {
 
 class PDFService {
   private templateCache: string | null = null;
+  private logoBase64Cache: string | null = null;
+
+  async loadLogo(): Promise<string> {
+    if (this.logoBase64Cache) {
+      return this.logoBase64Cache;
+    }
+
+    try {
+      const logo = require('../assets/logo.png');
+      const asset = Asset.fromModule(logo);
+      await asset.downloadAsync();
+      
+      if (asset.localUri) {
+        const base64 = await FileSystem.readAsStringAsync(asset.localUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        this.logoBase64Cache = `data:image/png;base64,${base64}`;
+        return this.logoBase64Cache;
+      }
+      
+      throw new Error('Failed to load logo');
+    } catch (error) {
+      console.error('Error loading logo:', error);
+      // Return empty string if logo fails to load
+      return '';
+    }
+  }
 
   async loadTemplate(): Promise<string> {
     if (this.templateCache) {
@@ -43,6 +70,7 @@ class PDFService {
 
   async generateReportHTML(data: ReportData): Promise<string> {
     const template = await this.loadTemplate();
+    const logoBase64 = await this.loadLogo();
     
     // Format currency helper
     const formatCurrency = (amount: number): string => {
@@ -82,6 +110,7 @@ class PDFService {
     
     // Replace all placeholders with actual data
     let html = template
+      .replace('{{logoBase64}}', logoBase64)
       .replace('{{currentDate}}', formatDateTime(new Date()))
       .replace('{{periodText}}', getPeriodText())
       .replace('{{totalRevenue}}', formatCurrency(data.summary.totalRevenue))
