@@ -43,8 +43,8 @@ function CustomDrawerContent(props: any) {
       </View>
       <DrawerContentScrollView {...props} contentContainerStyle={{ flexGrow: 1 }}>
         <DrawerItem
-          label="Home"
-          icon={({ color }) => <MaterialCommunityIcons size={28} name="home" color={color} />}
+          label="Kasir"
+          icon={({ color }) => <MaterialCommunityIcons size={28} name="cash-register" color={color} />}
           onPress={() => router.push('/(drawer)')}
           activeTintColor={activeColor}
           focused={pathname === '/(drawer)' || pathname === '/'}
@@ -221,9 +221,9 @@ export default function DrawerLayout() {
         <Drawer.Screen
           name="index"
           options={{
-            title: 'Home',
-            drawerLabel: 'Home',
-            drawerIcon: ({ color }) => <MaterialCommunityIcons size={28} name="home" color={color} />,
+            title: 'Kasir',
+            drawerLabel: 'Kasir',
+            drawerIcon: ({ color }) => <MaterialCommunityIcons size={28} name="cash-register" color={color} />,
           }}
         />
         <Drawer.Screen

@@ -40,6 +40,9 @@ export const orderService = {
 
       const docRef = await addDoc(collection(db, 'orders'), data);
 
+      // Update product stock for each item
+      await this.updateProductStock(input.items);
+
       // Update daily revenue record
       await this.updateDailyRevenue(input.totalAmount);
 
@@ -53,6 +56,31 @@ export const orderService = {
         success: false,
         error: error instanceof Error ? error.message : 'Gagal membuat pesanan',
       };
+    }
+  },
+
+  /**
+   * Update product stock after order is created
+   */
+  async updateProductStock(items: { productId: string; quantity: number }[]): Promise<void> {
+    try {
+      for (const item of items) {
+        const productRef = doc(db, 'products', item.productId);
+        const productSnap = await getDoc(productRef);
+
+        if (productSnap.exists()) {
+          const currentStock = productSnap.data().stock || 0;
+          const newStock = Math.max(0, currentStock - item.quantity);
+
+          await updateDoc(productRef, {
+            stock: newStock,
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error updating product stock:', error);
+      // Don't throw error to prevent order creation from failing
     }
   },
 
