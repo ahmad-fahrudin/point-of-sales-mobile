@@ -8,8 +8,9 @@ import { useCart } from '@/hooks/use-cart-context';
 import type { Product } from '@/types/product.type';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   FlatList,
   Image,
   ScrollView,
@@ -28,6 +29,9 @@ export default function HomeScreen() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  
+  const badgeScale = useRef(new Animated.Value(1)).current;
+  const badgeOpacity = useRef(new Animated.Value(1)).current;
 
   // Filter products berdasarkan search dan category
   const filteredProducts = useMemo(() => {
@@ -51,6 +55,38 @@ export default function HomeScreen() {
 
   const handleProductPress = (product: Product) => {
     addToCart(product);
+    
+    // Animasi badge yang sangat cepat
+    Animated.sequence([
+      // Pulse effect - membesar dengan sangat cepat
+      Animated.parallel([
+        Animated.spring(badgeScale, {
+          toValue: 2.2,
+          friction: 6,
+          tension: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(badgeOpacity, {
+          toValue: 0.6,
+          duration: 30,
+          useNativeDriver: true,
+        }),
+      ]),
+      // Kembali ke normal dengan sangat cepat
+      Animated.parallel([
+        Animated.spring(badgeScale, {
+          toValue: 1,
+          friction: 5,
+          tension: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(badgeOpacity, {
+          toValue: 1,
+          duration: 60,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
   };
 
   const getCategoryName = (categoryId: string) => {
@@ -159,10 +195,35 @@ export default function HomeScreen() {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.header}>
-        <ThemedText type="title" style={styles.title}>
-          Pilih Produk
-        </ThemedText>
-        <ThemedText style={styles.subtitle}>Klik produk untuk memulai transaksi</ThemedText>
+        <View style={styles.headerTop}>
+          <View>
+            <ThemedText type="title" style={styles.title}>
+              Pilih Produk
+            </ThemedText>
+            <ThemedText style={styles.subtitle}>Klik produk untuk memulai transaksi</ThemedText>
+          </View>
+          
+          <TouchableOpacity
+            style={[styles.cartButton, { backgroundColor: '#007AFF' }]}
+            onPress={() => router.push('/(drawer)/orders' as any)}
+            activeOpacity={0.8}
+          >
+            {getTotalItems() > 0 && (
+              <Animated.View
+                style={[
+                  styles.cartBadge,
+                  {
+                    transform: [{ scale: badgeScale }],
+                    opacity: badgeOpacity,
+                  }
+                ]}
+              >
+                <Text style={styles.cartBadgeText}>{getTotalItems()}</Text>
+              </Animated.View>
+            )}
+            <Ionicons name="cart" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.searchContainer}>
@@ -211,21 +272,6 @@ export default function HomeScreen() {
           refreshing={loadingProducts}
         />
       )}
-
-      {/* Floating Cart Button */}
-      {getTotalItems() > 0 && (
-        <TouchableOpacity
-          style={[styles.floatingCartButton, { backgroundColor: '#007AFF' }]}
-          onPress={() => router.push('/(drawer)/orders' as any)}
-          activeOpacity={0.8}
-        >
-          <View style={styles.cartBadge}>
-            <Text style={styles.cartBadgeText}>{getTotalItems()}</Text>
-          </View>
-          <Ionicons name="cart" size={28} color="#fff" />
-          <Text style={styles.floatingCartText}>Keranjang</Text>
-        </TouchableOpacity>
-      )}
     </ThemedView>
   );
 }
@@ -236,7 +282,12 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 16,
-    paddingTop: 8,
+    paddingTop: 14,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   title: {
     marginBottom: 4,
@@ -244,6 +295,18 @@ const styles = StyleSheet.create({
   subtitle: {
     opacity: 0.7,
     fontSize: 14,
+  },
+  cartButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   searchContainer: {
     paddingHorizontal: 16,
@@ -349,42 +412,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     opacity: 0.6,
   },
-  floatingCartButton: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 30,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    gap: 8,
-  },
   cartBadge: {
     position: 'absolute',
-    top: -8,
-    right: -8,
+    top: -4,
+    right: -4,
     backgroundColor: '#ff3b30',
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
   },
   cartBadgeText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
-  },
-  floatingCartText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });

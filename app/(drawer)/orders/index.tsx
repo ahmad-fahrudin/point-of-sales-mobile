@@ -113,19 +113,21 @@ export default function OrdersScreen() {
       <View style={styles.cartItemActions}>
         <View style={styles.quantityContainer}>
           <TouchableOpacity
-            style={[styles.quantityButton, { backgroundColor: colorScheme === 'dark' ? '#2c2c2e' : '#f0f0f0' }]}
+            style={styles.quantityButton}
             onPress={() => updateQuantity(item.productId, item.quantity - 1)}
+            activeOpacity={0.7}
           >
-            <Ionicons name="remove" size={16} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+            <Ionicons name="remove" size={18} color="#fff" />
           </TouchableOpacity>
 
           <Text style={[styles.quantityText, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>{item.quantity}</Text>
 
           <TouchableOpacity
-            style={[styles.quantityButton, { backgroundColor: colorScheme === 'dark' ? '#2c2c2e' : '#f0f0f0' }]}
+            style={styles.quantityButton}
             onPress={() => updateQuantity(item.productId, item.quantity + 1)}
+            activeOpacity={0.7}
           >
-            <Ionicons name="add" size={16} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+            <Ionicons name="add" size={18} color="#fff" />
           </TouchableOpacity>
         </View>
 
@@ -144,8 +146,8 @@ export default function OrdersScreen() {
               },
             ]
           );
-        }} style={styles.deleteButton}>
-          <Ionicons name="trash-outline" size={20} color="#ff3b30" />
+        }} style={styles.deleteButton} activeOpacity={0.7}>
+          <Ionicons name="trash-outline" size={22} color="#ff3b30" />
         </TouchableOpacity>
       </View>
     </View>
@@ -153,7 +155,6 @@ export default function OrdersScreen() {
 
   const paymentOptions = [
     { label: 'Tunai', value: 'cash' },
-    { label: 'Kartu', value: 'card' },
     { label: 'QRIS', value: 'qris' },
   ];
 
@@ -162,9 +163,20 @@ export default function OrdersScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {cartItems.length === 0 ? (
           <View style={styles.emptyCart}>
-            <Ionicons name="cart-outline" size={80} color={colorScheme === 'dark' ? '#666' : '#ccc'} />
+            <View style={{ 
+              width: 120, 
+              height: 120, 
+              borderRadius: 60, 
+              backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: 24
+            }}>
+              <Ionicons name="cart-outline" size={64} color={colorScheme === 'dark' ? '#666' : '#ccc'} />
+            </View>
             <ThemedText style={styles.emptyText}>Keranjang masih kosong</ThemedText>
-            <Button title="Pilih Produk" onPress={() => router.back()} style={{ marginTop: 16 }} />
+            <ThemedText style={{ fontSize: 14, opacity: 0.4, marginTop: 8, textAlign: 'center', paddingHorizontal: 40 }}>Silakan pilih produk yang ingin Anda beli</ThemedText>
+            <Button title="Pilih Produk" onPress={() => router.back()} style={{ marginTop: 24, paddingHorizontal: 32, height: 48, borderRadius: 24 }} />
           </View>
         ) : (
           <>
@@ -177,10 +189,13 @@ export default function OrdersScreen() {
 
             <View style={[styles.footer, { backgroundColor: colorScheme === 'dark' ? '#1c1c1e' : '#fff' }]}>
               <View style={styles.totalContainer}>
-                <ThemedText style={styles.totalLabel}>Total:</ThemedText>
+                <View>
+                  <ThemedText style={{ fontSize: 14, opacity: 0.6, marginBottom: 4, letterSpacing: 0.3 }}>Total Pembayaran</ThemedText>
+                  <ThemedText style={styles.totalLabel}>Total</ThemedText>
+                </View>
                 <ThemedText style={styles.totalAmount}>Rp {getTotalAmount().toLocaleString('id-ID')}</ThemedText>
               </View>
-              <Button title="Checkout" onPress={handleCheckout} style={styles.checkoutButton} />
+              <Button title="Proses Checkout" onPress={handleCheckout} style={styles.checkoutButton} />
             </View>
           </>
         )}
@@ -190,14 +205,34 @@ export default function OrdersScreen() {
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { backgroundColor: colorScheme === 'dark' ? '#1c1c1e' : '#fff' }]}>
               <View style={styles.modalHeader}>
-                <ThemedText type="subtitle">Pembayaran</ThemedText>
-                <TouchableOpacity onPress={() => setPaymentModalVisible(false)}>
+                <View>
+                  <ThemedText type="subtitle" style={{ fontSize: 22, fontWeight: '800', letterSpacing: -0.3 }}>Pembayaran</ThemedText>
+                  <ThemedText style={{ fontSize: 13, opacity: 0.6, marginTop: 2 }}>Lengkapi informasi pembayaran</ThemedText>
+                </View>
+                <TouchableOpacity 
+                  onPress={() => setPaymentModalVisible(false)} 
+                  style={{ 
+                    width: 40, 
+                    height: 40, 
+                    borderRadius: 20, 
+                    backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                  }}
+                  activeOpacity={0.7}
+                >
                   <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />
                 </TouchableOpacity>
               </View>
 
               <ScrollView style={styles.modalBody}>
-                <View style={styles.modalSection}>
+                <View style={[styles.modalSection, { 
+                  backgroundColor: colorScheme === 'dark' ? 'rgba(0, 122, 255, 0.1)' : 'rgba(0, 122, 255, 0.06)',
+                  padding: 20,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: colorScheme === 'dark' ? 'rgba(0, 122, 255, 0.2)' : 'rgba(0, 122, 255, 0.1)'
+                }]}>
                   <ThemedText style={styles.label}>Total Pembayaran</ThemedText>
                   <ThemedText style={styles.totalAmountModal}>Rp {getTotalAmount().toLocaleString('id-ID')}</ThemedText>
                 </View>
@@ -261,25 +296,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cartList: {
-    padding: 16,
+    padding: 20,
+    paddingBottom: 8,
   },
   cartItem: {
     flexDirection: 'row',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 12,
-    elevation: 2,
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 16,
+    elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
   },
   cartItemImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
+    width: 72,
+    height: 72,
+    borderRadius: 12,
     overflow: 'hidden',
-    marginRight: 12,
+    marginRight: 14,
   },
   itemImage: {
     width: '100%',
@@ -296,135 +332,177 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cartItemName: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 6,
+    lineHeight: 20,
+    letterSpacing: -0.2,
   },
   cartItemPrice: {
     fontSize: 14,
     color: '#007AFF',
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: -0.1,
   },
   cartItemActions: {
     justifyContent: 'space-between',
     alignItems: 'flex-end',
+    minWidth: 100,
   },
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
+    backgroundColor: 'rgba(0, 122, 255, 0.08)',
+    borderRadius: 12,
+    padding: 4,
   },
   quantityButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#007AFF',
   },
   quantityText: {
-    fontSize: 16,
-    fontWeight: '600',
-    minWidth: 24,
+    fontSize: 17,
+    fontWeight: '700',
+    minWidth: 28,
     textAlign: 'center',
+    letterSpacing: -0.3,
   },
   subtotal: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '800',
     color: '#007AFF',
-    marginVertical: 4,
+    marginVertical: 6,
+    letterSpacing: -0.3,
   },
   deleteButton: {
-    padding: 4,
+    padding: 6,
+    borderRadius: 8,
   },
   emptyCart: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: 40,
   },
   emptyText: {
-    marginTop: 16,
-    fontSize: 16,
-    opacity: 0.6,
+    marginTop: 20,
+    fontSize: 17,
+    opacity: 0.5,
+    letterSpacing: 0.1,
   },
   footer: {
-    padding: 16,
+    padding: 20,
+    paddingTop: 24,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.1)',
+    borderTopColor: 'rgba(0,0,0,0.08)',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
   },
   totalContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 18,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
   },
   totalLabel: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 19,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
   totalAmount: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '800',
     color: '#007AFF',
+    letterSpacing: -0.5,
   },
   checkoutButton: {
     width: '100%',
+    height: 56,
+    borderRadius: 16,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '80%',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    maxHeight: '85%',
+    elevation: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    padding: 24,
+    paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
+    borderBottomColor: 'rgba(0,0,0,0.08)',
   },
   modalBody: {
-    padding: 16,
+    padding: 24,
+    paddingTop: 20,
   },
   modalSection: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-    opacity: 0.8,
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 10,
+    opacity: 0.75,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
   },
   totalAmountModal: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 36,
+    fontWeight: '900',
     color: '#007AFF',
+    letterSpacing: -0.8,
+    padding: 4,
   },
   changeContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: 'rgba(52, 199, 89, 0.1)',
-    borderRadius: 8,
+    marginTop: 14,
+    padding: 16,
+    backgroundColor: 'rgba(52, 199, 89, 0.12)',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: 'rgba(52, 199, 89, 0.3)',
   },
   changeLabel: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: 0.1,
   },
   changeAmount: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '800',
     color: '#34c759',
+    letterSpacing: -0.5,
   },
   payButton: {
-    marginTop: 8,
-    marginBottom: 16,
+    marginTop: 12,
+    marginBottom: 20,
+    height: 56,
+    borderRadius: 16,
   },
 });

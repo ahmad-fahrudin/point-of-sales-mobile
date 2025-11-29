@@ -1,8 +1,10 @@
+import { auth } from '@/config/firebase';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { DrawerContentScrollView, DrawerItem } from '@react-navigation/drawer';
 import { usePathname, useRouter } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
+import { signOut } from 'firebase/auth';
 import React, { useState } from 'react';
 import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -27,8 +29,13 @@ function CustomDrawerContent(props: any) {
       {
         text: 'Logout',
         style: 'destructive',
-        onPress: () => {
-          router.replace('/auth/login');
+        onPress: async () => {
+          try {
+            await signOut(auth);
+            router.replace('/auth/login');
+          } catch (error) {
+            Alert.alert('Error', 'Gagal logout. Silakan coba lagi.');
+          }
         },
       },
     ]);
