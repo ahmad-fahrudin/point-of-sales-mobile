@@ -10,18 +10,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
-    Alert,
-    FlatList,
-    Image,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    useColorScheme,
-    View,
+  Alert,
+  FlatList,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useColorScheme,
+  View,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 
@@ -68,7 +68,7 @@ export default function OrdersScreen() {
         customerName: customerName.trim(),
       });
 
-      if (response.success) {
+      if (response.success && response.data) {
         Toast.show({
           type: 'success',
           text1: 'Transaksi Berhasil',
@@ -81,8 +81,8 @@ export default function OrdersScreen() {
         setCustomerName('');
         setPaymentModalVisible(false);
 
-        // Navigate back
-        router.back();
+        // Navigate to detail page with order ID
+        router.push(`/orders/detail?id=${response.data}`);
       } else {
         Alert.alert('Error', response.error || 'Gagal membuat pesanan');
       }

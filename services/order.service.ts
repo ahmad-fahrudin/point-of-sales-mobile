@@ -223,4 +223,170 @@ export const orderService = {
   calculateChange(paymentAmount: number, totalAmount: number): number {
     return Math.max(0, paymentAmount - totalAmount);
   },
+
+  /**
+   * Print receipt for an order
+   */
+  async printReceipt(order: Order): Promise<void> {
+    try {
+      const { Asset } = await import('expo-asset');
+      const FileSystem = await import('expo-file-system/legacy');
+      const Print = await import('expo-print');
+      const Sharing = await import('expo-sharing');
+      const { Platform } = await import('react-native');
+
+      // Load logo
+      let logoBase64 = '';
+      try {
+        const logo = require('../assets/logo.png');
+        const asset = Asset.fromModule(logo);
+        await asset.downloadAsync();
+        
+        if (asset.localUri) {
+          const base64 = await FileSystem.readAsStringAsync(asset.localUri, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          logoBase64 = `data:image/png;base64,${base64}`;
+        }
+      } catch (error) {
+        console.error('Error loading logo:', error);
+      }
+
+      // Load receipt template
+      const template = require('../templates/receipt-template.html');
+      const templateAsset = Asset.fromModule(template);
+      await templateAsset.downloadAsync();
+      
+      if (!templateAsset.localUri) {
+        throw new Error('Failed to load receipt template');
+      }
+
+      let html = await FileSystem.readAsStringAsync(templateAsset.localUri);
+
+      // Format helpers
+      const formatCurrency = (amount: number): string => {
+        return new Intl.NumberFormat('id-ID', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }).format(amount);
+      };
+
+      const formatDate = (dateStr: string): string => {
+        const date = new Date(dateStr);
+        return new Intl.DateTimeFormat('id-ID', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        }).format(date);
+      };
+
+      const formatTime = (dateStr: string): string => {
+        const date = new Date(dateStr);
+        return new Intl.DateTimeFormat('id-ID', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }).format(date);
+      };
+
+      const getPaymentMethodLabel = (method: string): string => {
+        const labels: Record<string, string> = {
+          cash: 'Tunai',
+          card: 'Kartu',
+          qris: 'QRIS',
+        };
+        return labels[method] || method;
+      };
+
+      // Build items HTML
+      let itemsHtml = '';
+      for (const item of order.items) {
+        itemsHtml += `
+        <div class="item-row">
+            <div class="item-name">${item.productName}</div>
+            <div class="item-details">
+                <span>${item.quantity} x Rp ${formatCurrency(item.price)}</span>
+                <span>Rp ${formatCurrency(item.subtotal)}</span>
+            </div>
+        </div>`;
+      }
+
+      // Handle customer name conditional
+      const customerNameSection = order.customerName ? `
+        <div class="meta-row">
+            <span class="meta-label">Pelanggan:</span>
+            <span>${order.customerName}</span>
+        </div>` : '';
+
+      // Handle payment details for cash
+      const paymentSection = order.paymentMethod === 'cash' ? `
+        <div class="summary-row payment">
+            <span>Bayar (${getPaymentMethodLabel(order.paymentMethod)}):</span>
+            <span>Rp ${formatCurrency(order.paymentAmount)}</span>
+        </div>` : '';
+
+      const changeSection = order.change > 0 ? `
+        <div class="summary-row change">
+            <span>Kembalian:</span>
+            <span>Rp ${formatCurrency(order.change)}</span>
+        </div>` : '';
+
+      // Replace items section first
+      html = html.replace(
+        /{{#each items}}[\s\S]*?{{\/each}}/,
+        itemsHtml
+      );
+
+      // Replace conditional sections
+      html = html.replace(
+        /{{#if customerName}}[\s\S]*?{{\/if}}/,
+        customerNameSection
+      );
+
+      html = html.replace(
+        /{{#if paymentAmount}}[\s\S]*?{{\/if}}/,
+        paymentSection
+      );
+
+      html = html.replace(
+        /{{#if change}}[\s\S]*?{{\/if}}/,
+        changeSection
+      );
+
+      // Replace simple placeholders
+      html = html
+        .replace(/{{logoBase64}}/g, logoBase64)
+        .replace(/{{orderId}}/g, order.orderId.substring(0, 8).toUpperCase())
+        .replace(/{{date}}/g, formatDate(order.createdAt))
+        .replace(/{{time}}/g, formatTime(order.createdAt))
+        .replace(/{{subtotal}}/g, formatCurrency(order.totalAmount))
+        .replace(/{{total}}/g, formatCurrency(order.totalAmount));
+
+      // Generate PDF
+      const timestamp = new Date().toISOString().slice(0, 10);
+      const filename = `Struk-${order.orderId.substring(0, 8)}-${timestamp}.pdf`;
+      
+      const { uri } = await Print.printToFileAsync({
+        html,
+        base64: false,
+        width: 226.77, // 80mm in points
+        height: undefined, // Auto height to fit content
+      });
+
+      // Share or print
+      if (Platform.OS === 'web') {
+        await Print.printAsync({ html });
+      } else {
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(uri, {
+            mimeType: 'application/pdf',
+            dialogTitle: 'Cetak Struk Pembayaran',
+            UTI: 'com.adobe.pdf',
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error printing receipt:', error);
+      throw error;
+    }
+  },
 };

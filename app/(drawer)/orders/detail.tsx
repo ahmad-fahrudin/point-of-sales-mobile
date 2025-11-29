@@ -6,7 +6,8 @@ import type { Order } from '@/types/order.type';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -14,9 +15,15 @@ export default function OrderDetailScreen() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [printing, setPrinting] = useState(false);
 
   const cardBg = useThemeColor({ light: '#fff', dark: '#1c1c1c' }, 'background');
   const borderColor = useThemeColor({ light: '#e0e0e0', dark: '#444' }, 'text');
+  const textColor = useThemeColor({ light: '#000', dark: '#fff' }, 'text');
+  const headerBorderColor = useThemeColor({ light: '#000', dark: '#fff' }, 'text');
+  const dividerColor = useThemeColor({ light: '#000', dark: '#666' }, 'text');
+  const itemBorderColor = useThemeColor({ light: '#e0e0e0', dark: '#333' }, 'text');
+  const badgeBgColor = useThemeColor({ light: '#000', dark: '#007AFF' }, 'text');
 
   useEffect(() => {
     if (id) {
@@ -59,6 +66,39 @@ export default function OrderDetailScreen() {
     return labels[method] || method;
   };
 
+  const handlePrintReceipt = async () => {
+    if (!order) return;
+
+    Alert.alert(
+      'Cetak Struk',
+      'Pilih format cetak untuk struk pembayaran',
+      [
+        {
+          text: 'Batal',
+          style: 'cancel',
+        },
+        {
+          text: 'Cetak Struk (80mm)',
+          onPress: async () => {
+            setPrinting(true);
+            try {
+              await orderService.printReceipt(order);
+              Toast.show({
+                type: 'success',
+                text1: 'Berhasil',
+                text2: 'Struk pembayaran berhasil dicetak',
+              });
+            } catch (error) {
+              Alert.alert('Error', 'Gagal mencetak struk pembayaran');
+            } finally {
+              setPrinting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <ThemedView style={styles.centerContainer}>
@@ -80,33 +120,47 @@ export default function OrderDetailScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Action Buttons */}
+        <View style={styles.actionButtons}>
+          <TouchableOpacity
+            style={[styles.printButton, printing && styles.printButtonDisabled]}
+            onPress={handlePrintReceipt}
+            disabled={printing}
+          >
+            <Ionicons name="print-outline" size={20} color="#fff" />
+            <ThemedText style={styles.printButtonText}>
+              {printing ? 'Mencetak...' : 'Cetak Struk'}
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+
         {/* Order Info Card */}
         <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
-          <View style={styles.cardHeader}>
+          <View style={[styles.cardHeader, { borderBottomColor: headerBorderColor }]}>
             <Ionicons name="receipt-outline" size={24} color="#007AFF" />
             <ThemedText style={styles.cardTitle}>Informasi Pesanan</ThemedText>
           </View>
 
-          <View style={styles.infoRow}>
+          <View style={[styles.infoRow, { borderBottomColor: itemBorderColor }]}>
             <ThemedText style={styles.infoLabel}>ID Pesanan:</ThemedText>
             <ThemedText style={styles.infoValue}>{order.orderId}</ThemedText>
           </View>
 
-          <View style={styles.infoRow}>
+          <View style={[styles.infoRow, { borderBottomColor: itemBorderColor }]}>
             <ThemedText style={styles.infoLabel}>Tanggal & Waktu:</ThemedText>
             <ThemedText style={styles.infoValue}>{formatDate(order.createdAt)}</ThemedText>
           </View>
 
           {order.customerName && (
-            <View style={styles.infoRow}>
+            <View style={[styles.infoRow, { borderBottomColor: itemBorderColor }]}>
               <ThemedText style={styles.infoLabel}>Nama Pelanggan:</ThemedText>
               <ThemedText style={styles.infoValue}>{order.customerName}</ThemedText>
             </View>
           )}
 
-          <View style={styles.infoRow}>
+          <View style={[styles.infoRow, { borderBottomColor: itemBorderColor }]}>
             <ThemedText style={styles.infoLabel}>Metode Pembayaran:</ThemedText>
-            <View style={styles.paymentBadge}>
+            <View style={[styles.paymentBadge, { backgroundColor: badgeBgColor }]}>
               <ThemedText style={styles.paymentBadgeText}>
                 {getPaymentMethodLabel(order.paymentMethod)}
               </ThemedText>
@@ -116,20 +170,20 @@ export default function OrderDetailScreen() {
 
         {/* Items Card */}
         <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
-          <View style={styles.cardHeader}>
+          <View style={[styles.cardHeader, { borderBottomColor: headerBorderColor }]}>
             <Ionicons name="cart-outline" size={24} color="#007AFF" />
             <ThemedText style={styles.cardTitle}>Item Pesanan</ThemedText>
           </View>
 
           {order.items.map((item, index) => (
-            <View key={index} style={[styles.itemRow, index < order.items.length - 1 && styles.itemRowBorder]}>
+            <View key={index} style={[styles.itemRow, { borderBottomColor: itemBorderColor }, index < order.items.length - 1 && styles.itemRowBorder]}>
               <View style={styles.itemInfo}>
                 <ThemedText style={styles.itemName}>{item.productName}</ThemedText>
                 <ThemedText style={styles.itemDetails}>
                   Rp {item.price.toLocaleString('id-ID')} × {item.quantity}
                 </ThemedText>
               </View>
-              <ThemedText style={styles.itemSubtotal}>
+              <ThemedText style={[styles.itemSubtotal, { color: textColor }]}>
                 Rp {item.subtotal.toLocaleString('id-ID')}
               </ThemedText>
             </View>
@@ -138,41 +192,41 @@ export default function OrderDetailScreen() {
 
         {/* Payment Summary Card */}
         <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
-          <View style={styles.cardHeader}>
+          <View style={[styles.cardHeader, { borderBottomColor: headerBorderColor }]}>
             <Ionicons name="cash-outline" size={24} color="#007AFF" />
             <ThemedText style={styles.cardTitle}>Ringkasan Pembayaran</ThemedText>
           </View>
 
           <View style={styles.summaryRow}>
             <ThemedText style={styles.summaryLabel}>Subtotal:</ThemedText>
-            <ThemedText style={styles.summaryValue}>
+            <ThemedText style={[styles.summaryValue, { color: textColor }]}>
               Rp {order.totalAmount.toLocaleString('id-ID')}
             </ThemedText>
           </View>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: dividerColor }]} />
 
           <View style={styles.summaryRow}>
             <ThemedText style={styles.totalLabel}>Total:</ThemedText>
-            <ThemedText style={styles.totalValue}>
+            <ThemedText style={[styles.totalValue, { color: textColor }]}>
               Rp {order.totalAmount.toLocaleString('id-ID')}
             </ThemedText>
           </View>
 
           {order.paymentMethod === 'cash' && (
             <>
-              <View style={styles.divider} />
+              <View style={[styles.divider, { backgroundColor: dividerColor }]} />
 
               <View style={styles.summaryRow}>
                 <ThemedText style={styles.summaryLabel}>Dibayar:</ThemedText>
-                <ThemedText style={styles.summaryValue}>
+                <ThemedText style={[styles.summaryValue, { color: textColor }]}>
                   Rp {order.paymentAmount.toLocaleString('id-ID')}
                 </ThemedText>
               </View>
 
               <View style={styles.summaryRow}>
                 <ThemedText style={styles.summaryLabel}>Kembalian:</ThemedText>
-                <ThemedText style={[styles.summaryValue, styles.changeAmount]}>
+                <ThemedText style={[styles.summaryValue, styles.changeAmount, { color: textColor }]}>
                   Rp {order.change.toLocaleString('id-ID')}
                 </ThemedText>
               </View>
@@ -191,6 +245,35 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
   },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  printButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#007AFF',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  printButtonDisabled: {
+    opacity: 0.6,
+  },
+  printButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -207,109 +290,122 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   card: {
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 8,
+    padding: 20,
     marginBottom: 16,
-    borderWidth: 1,
+    borderWidth: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    gap: 8,
+    marginBottom: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 2,
+    gap: 10,
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    alignItems: 'flex-start',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
   },
   infoLabel: {
-    fontSize: 14,
+    fontSize: 13,
+    fontWeight: '600',
     opacity: 0.7,
     flex: 1,
   },
   infoValue: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '500',
     flex: 2,
     textAlign: 'right',
   },
   paymentBadge: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 6,
   },
   paymentBadgeText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   itemRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 12,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
   },
   itemRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   itemInfo: {
     flex: 1,
+    paddingRight: 12,
   },
   itemName: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 6,
+    lineHeight: 20,
   },
   itemDetails: {
-    fontSize: 14,
+    fontSize: 13,
     opacity: 0.7,
+    fontFamily: 'monospace',
   },
   itemSubtotal: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
-    color: '#007AFF',
+    fontFamily: 'monospace',
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    paddingVertical: 10,
   },
   summaryLabel: {
     fontSize: 14,
+    fontWeight: '600',
     opacity: 0.7,
   },
   summaryValue: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
+    fontFamily: 'monospace',
   },
   divider: {
-    height: 1,
-    backgroundColor: '#e0e0e0',
-    marginVertical: 12,
+    height: 2,
+    marginVertical: 14,
   },
   totalLabel: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   totalValue: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
-    color: '#007AFF',
+    fontFamily: 'monospace',
   },
   changeAmount: {
-    color: '#34c759',
+    fontWeight: '700',
   },
 });
