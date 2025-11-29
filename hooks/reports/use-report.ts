@@ -1,5 +1,5 @@
 import { reportService } from '@/services/report.service';
-import type { ReportData, ReportFilter, ReportPeriod } from '@/types/report.type';
+import type { ReportData, ReportFilter } from '@/types/report.type';
 import { useEffect, useState } from 'react';
 
 /**
@@ -10,11 +10,19 @@ export const useReport = () => {
   const [error, setError] = useState<string | null>(null);
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [period, setPeriod] = useState<ReportPeriod>('daily');
-  const [customDateRange, setCustomDateRange] = useState<{
+  const [dateRange, setDateRangeState] = useState<{
     startDate: string;
     endDate: string;
-  } | null>(null);
+  }>(() => {
+    // Default to last 7 days
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 7);
+    return {
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
+    };
+  });
 
   const pageSize = 10;
 
@@ -26,10 +34,7 @@ export const useReport = () => {
     setError(null);
 
     try {
-      // Determine date range
-      const dateRange = customDateRange || reportService.getDateRange(period);
       const filter: ReportFilter = {
-        period,
         startDate: dateRange.startDate,
         endDate: dateRange.endDate,
       };
@@ -50,19 +55,10 @@ export const useReport = () => {
   };
 
   /**
-   * Change period filter
-   */
-  const changePeriod = (newPeriod: ReportPeriod) => {
-    setPeriod(newPeriod);
-    setCustomDateRange(null); // Reset custom date range
-    setCurrentPage(1);
-  };
-
-  /**
-   * Set custom date range
+   * Set date range
    */
   const setDateRange = (startDate: string, endDate: string) => {
-    setCustomDateRange({ startDate, endDate });
+    setDateRangeState({ startDate, endDate });
     setCurrentPage(1);
   };
 
@@ -100,10 +96,10 @@ export const useReport = () => {
     fetchReports(currentPage);
   };
 
-  // Fetch reports when filters change
+  // Fetch reports when date range changes
   useEffect(() => {
     fetchReports(1);
-  }, [period, customDateRange]);
+  }, [dateRange]);
 
   return {
     // State
@@ -111,11 +107,9 @@ export const useReport = () => {
     error,
     reportData,
     currentPage,
-    period,
-    customDateRange,
+    dateRange,
 
     // Actions
-    changePeriod,
     setDateRange,
     nextPage,
     previousPage,

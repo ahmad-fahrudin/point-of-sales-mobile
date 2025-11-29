@@ -1,18 +1,16 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
-import { Pagination } from '@/components/ui/pagination';
-import { Select } from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useReport } from '@/hooks/reports/use-report';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { pdfService } from '@/services/pdf.service';
 import { reportService } from '@/services/report.service';
-import type { DailyRevenue, ReportPeriod } from '@/types/report.type';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import {
+  Alert,
   Platform,
   RefreshControl,
   ScrollView,
@@ -29,8 +27,6 @@ export default function ReportsScreen() {
     error,
     reportData,
     currentPage,
-    period,
-    changePeriod,
     setDateRange,
     nextPage,
     previousPage,
@@ -39,10 +35,15 @@ export default function ReportsScreen() {
   } = useReport();
 
   const [refreshing, setRefreshing] = useState(false);
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [startDate, setStartDate] = useState<Date>(() => {
+    const date = new Date();
+    date.setDate(date.getDate() - 7);
+    return date;
+  });
+  const [endDate, setEndDate] = useState<Date>(new Date());
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   // Refresh data when screen is focused
   useFocusEffect(
@@ -57,18 +58,43 @@ export default function ReportsScreen() {
     setRefreshing(false);
   };
 
-  const periodOptions = [
-    { label: 'Harian (7 Hari)', value: 'daily' },
-    { label: 'Mingguan (4 Minggu)', value: 'weekly' },
-    { label: 'Bulanan (12 Bulan)', value: 'monthly' },
-    { label: 'Kustom', value: 'custom' },
-  ];
-
   const applyCustomDateRange = () => {
-    if (startDate && endDate) {
-      const startDateStr = startDate.toISOString().split('T')[0];
-      const endDateStr = endDate.toISOString().split('T')[0];
-      setDateRange(startDateStr, endDateStr);
+    const startDateStr = startDate.toISOString().split('T')[0];
+    const endDateStr = endDate.toISOString().split('T')[0];
+    setDateRange(startDateStr, endDateStr);
+  };
+
+  const handlePrintPDF = async () => {
+    if (!reportData) {
+      Alert.alert('Error', 'Tidak ada data laporan untuk dicetak');
+      return;
+    }
+
+    try {
+      setIsGeneratingPDF(true);
+      
+      const pdfData = {
+        summary: reportData.summary,
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
+      };
+
+      await pdfService.printPDF(pdfData);
+      
+      Alert.alert(
+        'Berhasil', 
+        Platform.OS === 'web' 
+          ? 'Laporan berhasil disiapkan untuk dicetak'
+          : 'PDF laporan berhasil dibuat dan siap dibagikan'
+      );
+    } catch (error) {
+      console.error('Error printing PDF:', error);
+      Alert.alert(
+        'Error', 
+        'Terjadi kesalahan saat membuat PDF. Silakan coba lagi.'
+      );
+    } finally {
+      setIsGeneratingPDF(false);
     }
   };
 
@@ -81,154 +107,89 @@ export default function ReportsScreen() {
       <View
         style={[
           styles.summaryContainer,
-          { backgroundColor: colorScheme === 'dark' ? '#1c1c1e' : '#fff' },
+          { backgroundColor: colorScheme === 'dark' ? '#1c1c1e' : '#ffffff' },
         ]}
       >
-        <ThemedText type="subtitle" style={styles.summaryTitle}>
+        <ThemedText type="subtitle" style={[styles.summaryTitle, { color: colorScheme === 'dark' ? '#ffffff' : '#1a1a1a' }]}>
           Ringkasan Laporan
         </ThemedText>
 
         <View style={styles.summaryGrid}>
           {/* Total Revenue */}
-          <View style={[styles.summaryCard, styles.revenueCard]}>
-            <Ionicons name="trending-up" size={24} color="#34c759" />
-            <Text style={styles.summaryLabel}>Pendapatan Kotor</Text>
-            <Text style={styles.summaryValue}>
-              {reportService.formatCurrency(summary.totalRevenue)}
-            </Text>
+          <View style={[styles.summaryCard, colorScheme === 'dark' ? styles.revenueCardDark : styles.revenueCard]}>
+            <View style={[styles.iconContainer, { backgroundColor: '#10b981' }]}>
+              <Ionicons name="trending-up" size={24} color="#ffffff" />
+            </View>
+            <View style={styles.cardContent}>
+              <Text style={[styles.summaryLabel, { color: colorScheme === 'dark' ? '#9ca3af' : '#6b7280' }]}>Pendapatan Kotor</Text>
+              <Text style={[styles.summaryValue, { color: colorScheme === 'dark' ? '#ffffff' : '#1f2937' }]}>
+                {reportService.formatCurrency(summary.totalRevenue)}
+              </Text>
+            </View>
           </View>
 
           {/* Total Spending */}
-          <View style={[styles.summaryCard, styles.spendingCard]}>
-            <Ionicons name="trending-down" size={24} color="#ff3b30" />
-            <Text style={styles.summaryLabel}>Total Pengeluaran</Text>
-            <Text style={styles.summaryValue}>
-              {reportService.formatCurrency(summary.totalSpending)}
-            </Text>
+          <View style={[styles.summaryCard, colorScheme === 'dark' ? styles.spendingCardDark : styles.spendingCard]}>
+            <View style={[styles.iconContainer, { backgroundColor: '#ef4444' }]}>
+              <Ionicons name="trending-down" size={24} color="#ffffff" />
+            </View>
+            <View style={styles.cardContent}>
+              <Text style={[styles.summaryLabel, { color: colorScheme === 'dark' ? '#9ca3af' : '#6b7280' }]}>Total Pengeluaran</Text>
+              <Text style={[styles.summaryValue, { color: colorScheme === 'dark' ? '#ffffff' : '#1f2937' }]}>
+                {reportService.formatCurrency(summary.totalSpending)}
+              </Text>
+            </View>
           </View>
 
           {/* Net Revenue */}
-          <View style={[styles.summaryCard, styles.netRevenueCard]}>
-            <Ionicons name="cash" size={24} color="#007AFF" />
-            <Text style={styles.summaryLabel}>Pendapatan Bersih</Text>
-            <Text style={[styles.summaryValue, styles.netRevenueValue]}>
-              {reportService.formatCurrency(summary.netRevenue)}
-            </Text>
+          <View style={[styles.summaryCard, colorScheme === 'dark' ? styles.netRevenueCardDark : styles.netRevenueCard]}>
+            <View style={[styles.iconContainer, { backgroundColor: '#3b82f6' }]}>
+              <Ionicons name="cash" size={24} color="#ffffff" />
+            </View>
+            <View style={styles.cardContent}>
+              <Text style={[styles.summaryLabel, { color: colorScheme === 'dark' ? '#9ca3af' : '#6b7280' }]}>Pendapatan Bersih</Text>
+              <Text style={[styles.summaryValue, styles.netRevenueValue, { color: colorScheme === 'dark' ? '#60a5fa' : '#3b82f6' }]}>
+                {reportService.formatCurrency(summary.netRevenue)}
+              </Text>
+            </View>
           </View>
 
           {/* Total Orders */}
-          <View style={[styles.summaryCard, styles.ordersCard]}>
-            <Ionicons name="receipt" size={24} color="#ff9500" />
-            <Text style={styles.summaryLabel}>Total Transaksi</Text>
-            <Text style={styles.summaryValue}>{summary.totalOrders}</Text>
+          <View style={[styles.summaryCard, colorScheme === 'dark' ? styles.ordersCardDark : styles.ordersCard]}>
+            <View style={[styles.iconContainer, { backgroundColor: '#f97316' }]}>
+              <Ionicons name="receipt" size={24} color="#ffffff" />
+            </View>
+            <View style={styles.cardContent}>
+              <Text style={[styles.summaryLabel, { color: colorScheme === 'dark' ? '#9ca3af' : '#6b7280' }]}>Total Transaksi</Text>
+              <Text style={[styles.summaryValue, { color: colorScheme === 'dark' ? '#ffffff' : '#1f2937' }]}>{summary.totalOrders}</Text>
+            </View>
           </View>
 
           {/* Average Order Value */}
-          <View style={[styles.summaryCard, styles.avgCard]}>
-            <Ionicons name="analytics" size={24} color="#5856d6" />
-            <Text style={styles.summaryLabel}>Rata-rata Transaksi</Text>
-            <Text style={styles.summaryValue}>
-              {reportService.formatCurrency(summary.averageOrderValue)}
-            </Text>
+          <View style={[styles.summaryCard, colorScheme === 'dark' ? styles.avgCardDark : styles.avgCard]}>
+            <View style={[styles.iconContainer, { backgroundColor: '#6b7280' }]}>
+              <Ionicons name="analytics" size={24} color="#ffffff" />
+            </View>
+            <View style={styles.cardContent}>
+              <Text style={[styles.summaryLabel, { color: colorScheme === 'dark' ? '#9ca3af' : '#6b7280' }]}>Rata-rata Transaksi</Text>
+              <Text style={[styles.summaryValue, { color: colorScheme === 'dark' ? '#ffffff' : '#1f2937' }]}>
+                {reportService.formatCurrency(summary.averageOrderValue)}
+              </Text>
+            </View>
           </View>
         </View>
       </View>
     );
   };
 
-  const renderTableHeader = () => (
-    <View
-      style={[
-        styles.tableHeader,
-        { backgroundColor: colorScheme === 'dark' ? '#2c2c2e' : '#f0f0f0' },
-      ]}
-    >
-      <Text style={[styles.tableHeaderText, styles.colDate]}>Tanggal</Text>
-      <Text style={[styles.tableHeaderText, styles.colAmount]}>Pendapatan</Text>
-      <Text style={[styles.tableHeaderText, styles.colAmount]}>Pengeluaran</Text>
-      <Text style={[styles.tableHeaderText, styles.colAmount]}>Bersih</Text>
-      <Text style={[styles.tableHeaderText, styles.colOrders]}>Transaksi</Text>
-    </View>
-  );
 
-  const renderTableRow = (item: DailyRevenue) => (
-    <View
-      key={item.dailyRevenueId}
-      style={[
-        styles.tableRow,
-        { backgroundColor: colorScheme === 'dark' ? '#1c1c1e' : '#fff' },
-      ]}
-    >
-      <Text style={[styles.tableCell, styles.colDate, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
-        {reportService.formatDateShort(item.date)}
-      </Text>
-      <Text style={[styles.tableCell, styles.colAmount, styles.revenueText]}>
-        {reportService.formatCurrency(item.totalRevenue)}
-      </Text>
-      <Text style={[styles.tableCell, styles.colAmount, styles.spendingText]}>
-        {reportService.formatCurrency(item.totalSpending)}
-      </Text>
-      <Text style={[styles.tableCell, styles.colAmount, styles.netRevenueText]}>
-        {reportService.formatCurrency(item.netRevenue)}
-      </Text>
-      <Text style={[styles.tableCell, styles.colOrders, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
-        {item.totalOrders}
-      </Text>
-    </View>
-  );
 
-  const renderTable = () => {
-    if (loading && !reportData) {
-      return (
-        <View style={styles.tableContainer}>
-          {[...Array(5)].map((_, index) => (
-            <Skeleton key={index} style={styles.skeletonRow} />
-          ))}
-        </View>
-      );
-    }
 
-    if (error) {
-      return (
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle" size={48} color="#ff3b30" />
-          <Text style={styles.errorText}>{error}</Text>
-          <Button title="Coba Lagi" onPress={refresh} style={{ marginTop: 16 }} />
-        </View>
-      );
-    }
 
-    if (!reportData || reportData.dailyRevenues.length === 0) {
-      return (
-        <View style={styles.emptyContainer}>
-          <Ionicons
-            name="document-text-outline"
-            size={64}
-            color={colorScheme === 'dark' ? '#666' : '#ccc'}
-          />
-          <Text style={[styles.emptyText, { color: colorScheme === 'dark' ? '#666' : '#999' }]}>
-            Tidak ada data laporan
-          </Text>
-        </View>
-      );
-    }
 
-    return (
-      <View style={styles.tableContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-          <View style={styles.tableWrapper}>
-            {renderTableHeader()}
-            <ScrollView style={styles.tableBody}>
-              {reportData.dailyRevenues.map(renderTableRow)}
-            </ScrollView>
-          </View>
-        </ScrollView>
-      </View>
-    );
-  };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { backgroundColor: colorScheme === 'dark' ? '#000000' : '#f8f9fa' }]}>
       <ScrollView
         style={styles.scrollView}
         refreshControl={
@@ -236,131 +197,99 @@ export default function ReportsScreen() {
         }
       >
         {/* Filter Section */}
-        <View style={styles.filterContainer}>
-          <ThemedText type="subtitle" style={styles.filterTitle}>
-            Filter Periode
+        <View style={[styles.filterContainer, { backgroundColor: colorScheme === 'dark' ? '#1c1c1e' : '#ffffff' }]}>
+          <ThemedText type="subtitle" style={[styles.filterTitle, { color: colorScheme === 'dark' ? '#ffffff' : '#1a1a1a' }]}>
+            Pilih Rentang Tanggal
           </ThemedText>
-          <Select
-            options={periodOptions}
-            value={period}
-            onValueChange={(value) => changePeriod(value as ReportPeriod)}
-            placeholder="Pilih periode"
-          />
           
-          {period === 'custom' && (
-            <View style={styles.dateRangeContainer}>
-              <View style={styles.dateInputWrapper}>
-                <ThemedText style={styles.dateLabel}>Dari Tanggal</ThemedText>
-                <TouchableOpacity
-                  style={[styles.datePickerButton, { backgroundColor: colorScheme === 'dark' ? '#2c2c2e' : '#fff' }]}
-                  onPress={() => setShowStartPicker(true)}
-                >
-                  <Text style={[styles.datePickerText, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
-                    {startDate ? reportService.formatDateShort(startDate) : 'Pilih tanggal'}
-                  </Text>
-                  <Ionicons name="calendar" size={20} color="#007AFF" />
-                </TouchableOpacity>
-              </View>
-              
-              <View style={styles.dateInputWrapper}>
-                <ThemedText style={styles.dateLabel}>Sampai Tanggal</ThemedText>
-                <TouchableOpacity
-                  style={[styles.datePickerButton, { backgroundColor: colorScheme === 'dark' ? '#2c2c2e' : '#fff' }]}
-                  onPress={() => setShowEndPicker(true)}
-                >
-                  <Text style={[styles.datePickerText, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
-                    {endDate ? reportService.formatDateShort(endDate) : 'Pilih tanggal'}
-                  </Text>
-                  <Ionicons name="calendar" size={20} color="#007AFF" />
-                </TouchableOpacity>
-              </View>
-              
-              <Button
-                title="Terapkan"
-                onPress={applyCustomDateRange}
-                style={styles.applyButton}
-              />
-
-              {/* Start Date Picker */}
-              {showStartPicker && (
-                <DateTimePicker
-                  value={startDate || new Date()}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={(event, selectedDate) => {
-                    setShowStartPicker(false);
-                    if (selectedDate) {
-                      setStartDate(selectedDate);
-                    }
-                  }}
-                  maximumDate={endDate || new Date()}
-                />
-              )}
-
-              {/* End Date Picker */}
-              {showEndPicker && (
-                <DateTimePicker
-                  value={endDate || new Date()}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={(event, selectedDate) => {
-                    setShowEndPicker(false);
-                    if (selectedDate) {
-                      setEndDate(selectedDate);
-                    }
-                  }}
-                  minimumDate={startDate || undefined}
-                  maximumDate={new Date()}
-                />
-              )}
+          <View style={styles.dateRangeContainer}>
+            <View style={styles.dateInputWrapper}>
+              <ThemedText style={[styles.dateLabel, { color: colorScheme === 'dark' ? '#e5e7eb' : '#374151' }]}>Dari Tanggal</ThemedText>
+              <TouchableOpacity
+                style={[styles.datePickerButton, { backgroundColor: colorScheme === 'dark' ? '#2c2c2e' : '#fff' }]}
+                onPress={() => setShowStartPicker(true)}
+              >
+                <Text style={[styles.datePickerText, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
+                  {reportService.formatDateShort(startDate)}
+                </Text>
+                <Ionicons name="calendar" size={20} color="#007AFF" />
+              </TouchableOpacity>
             </View>
-          )}
+            
+            <View style={styles.dateInputWrapper}>
+              <ThemedText style={[styles.dateLabel, { color: colorScheme === 'dark' ? '#e5e7eb' : '#374151' }]}>Sampai Tanggal</ThemedText>
+              <TouchableOpacity
+                style={[styles.datePickerButton, { backgroundColor: colorScheme === 'dark' ? '#2c2c2e' : '#fff' }]}
+                onPress={() => setShowEndPicker(true)}
+              >
+                <Text style={[styles.datePickerText, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
+                  {reportService.formatDateShort(endDate)}
+                </Text>
+                <Ionicons name="calendar" size={20} color="#007AFF" />
+              </TouchableOpacity>
+            </View>
+            
+            <Button
+              title="Terapkan Filter"
+              onPress={applyCustomDateRange}
+              style={styles.applyButton}
+            />
+
+            {/* Start Date Picker */}
+            {showStartPicker && (
+              <DateTimePicker
+                value={startDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(event, selectedDate) => {
+                  setShowStartPicker(false);
+                  if (selectedDate) {
+                    setStartDate(selectedDate);
+                  }
+                }}
+                maximumDate={endDate}
+              />
+            )}
+
+            {/* End Date Picker */}
+            {showEndPicker && (
+              <DateTimePicker
+                value={endDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(event, selectedDate) => {
+                  setShowEndPicker(false);
+                  if (selectedDate) {
+                    setEndDate(selectedDate);
+                  }
+                }}
+                minimumDate={startDate}
+                maximumDate={new Date()}
+              />
+            )}
+          </View>
         </View>
+
+        {/* Print PDF Button */}
+        {reportData && (
+          <View style={[styles.printContainer, { backgroundColor: colorScheme === 'dark' ? '#1c1c1e' : '#ffffff' }]}>
+            <Button
+              title={isGeneratingPDF ? "Membuat PDF..." : "📄 Cetak PDF"}
+              onPress={handlePrintPDF}
+              disabled={isGeneratingPDF || loading}
+              style={[
+                styles.printButton,
+                { 
+                  backgroundColor: isGeneratingPDF || loading ? '#9ca3af' : '#3b82f6',
+                  opacity: isGeneratingPDF || loading ? 0.7 : 1 
+                }
+              ]}
+            />
+          </View>
+        )}
 
         {/* Summary Cards */}
         {renderSummaryCard()}
-
-        {/* Table Section */}
-        <View
-          style={[
-            styles.tableSection,
-            { backgroundColor: colorScheme === 'dark' ? '#1c1c1e' : '#fff' },
-          ]}
-        >
-          <View style={styles.tableTitleContainer}>
-            <ThemedText type="subtitle">Laporan Harian</ThemedText>
-            <TouchableOpacity onPress={refresh} disabled={loading}>
-              <Ionicons
-                name="refresh"
-                size={24}
-                color={colorScheme === 'dark' ? '#007AFF' : '#007AFF'}
-              />
-            </TouchableOpacity>
-          </View>
-
-          {renderTable()}
-
-          {/* Pagination */}
-          {reportData && reportData.totalPages > 1 && (
-            <View style={styles.paginationContainer}>
-              <Pagination
-                currentPage={currentPage}
-                totalPages={reportData.totalPages}
-                onPageChange={goToPage}
-                itemsPerPage={10}
-                totalItems={reportData.totalRecords}
-              />
-            </View>
-          )}
-        </View>
-
-        {/* Info Section */}
-        <View style={styles.infoContainer}>
-          <Ionicons name="information-circle" size={20} color="#007AFF" />
-          <Text style={[styles.infoText, { color: colorScheme === 'dark' ? '#999' : '#666' }]}>
-            Pendapatan bersih = Pendapatan kotor - Pengeluaran pada hari yang sama
-          </Text>
-        </View>
       </ScrollView>
     </ThemedView>
   );
@@ -374,21 +303,30 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   filterContainer: {
-    padding: 16,
+    margin: 16,
+    padding: 20,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   filterTitle: {
-    marginBottom: 8,
+    marginBottom: 16,
+    fontSize: 18,
+    fontWeight: '600',
   },
   dateRangeContainer: {
-    marginTop: 16,
-    gap: 12,
+    gap: 16,
   },
   dateInputWrapper: {
-    gap: 4,
+    gap: 8,
   },
   dateLabel: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   dateInput: {
     marginTop: 4,
@@ -397,185 +335,151 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
-    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: 'rgba(59, 130, 246, 0.15)',
+    borderRadius: 12,
+    backgroundColor: 'rgba(59, 130, 246, 0.03)',
     marginTop: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
   datePickerText: {
     fontSize: 16,
     flex: 1,
+    fontWeight: '500',
   },
   applyButton: {
-    marginTop: 8,
+    marginTop: 16,
+    borderRadius: 12,
+    paddingVertical: 4,
   },
   summaryContainer: {
     marginHorizontal: 16,
-    marginBottom: 16,
-    padding: 16,
-    borderRadius: 12,
-    elevation: 2,
+    marginBottom: 20,
+    padding: 24,
+    borderRadius: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 16,
+    elevation: 6,
   },
   summaryTitle: {
-    marginBottom: 16,
+    marginBottom: 20,
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   summaryGrid: {
-    gap: 12,
+    gap: 16,
   },
   summaryCard: {
-    padding: 16,
-    borderRadius: 8,
+    padding: 20,
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
-  revenueCard: {
-    backgroundColor: 'rgba(52, 199, 89, 0.1)',
-  },
-  spendingCard: {
-    backgroundColor: 'rgba(255, 59, 48, 0.1)',
-  },
-  netRevenueCard: {
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
-  },
-  ordersCard: {
-    backgroundColor: 'rgba(255, 149, 0, 0.1)',
-  },
-  avgCard: {
-    backgroundColor: 'rgba(88, 86, 214, 0.1)',
-  },
-  summaryLabel: {
-    flex: 1,
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
-  },
-  summaryValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#000',
-  },
-  netRevenueValue: {
-    color: '#007AFF',
-  },
-  tableSection: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 12,
+    gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    overflow: 'hidden',
+    elevation: 2,
   },
-  tableTitleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  cardContent: {
+    flex: 1,
+    gap: 4,
+  },
+  revenueCard: {
+    backgroundColor: '#ecfdf5',
+    borderColor: 'rgba(34, 197, 94, 0.1)',
+  },
+  revenueCardDark: {
+    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+    borderColor: 'rgba(34, 197, 94, 0.3)',
+  },
+  spendingCard: {
+    backgroundColor: '#fef2f2',
+    borderColor: 'rgba(239, 68, 68, 0.1)',
+  },
+  spendingCardDark: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  netRevenueCard: {
+    backgroundColor: '#eff6ff',
+    borderColor: 'rgba(59, 130, 246, 0.1)',
+  },
+  netRevenueCardDark: {
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+  },
+  ordersCard: {
+    backgroundColor: '#fff7ed',
+    borderColor: 'rgba(249, 115, 22, 0.1)',
+  },
+  ordersCardDark: {
+    backgroundColor: 'rgba(249, 115, 22, 0.15)',
+    borderColor: 'rgba(249, 115, 22, 0.3)',
+  },
+  avgCard: {
+    backgroundColor: '#f3f4f6',
+    borderColor: 'rgba(107, 114, 128, 0.1)',
+  },
+  avgCardDark: {
+    backgroundColor: 'rgba(107, 114, 128, 0.15)',
+    borderColor: 'rgba(107, 114, 128, 0.3)',
+  },
+  summaryLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  summaryValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  netRevenueValue: {
+    // Color will be set dynamically
+  },
+
+  printContainer: {
+    marginHorizontal: 16,
+    marginBottom: 16,
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  tableContainer: {
-    paddingHorizontal: 16,
-  },
-  tableWrapper: {
-    minWidth: 500,
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    marginTop: 8,
-  },
-  tableHeaderText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#666',
-    textTransform: 'uppercase',
-  },
-  tableBody: {
-    maxHeight: 400,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
-  },
-  tableCell: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  colDate: {
-    flex: 2,
-  },
-  colAmount: {
-    flex: 2,
-    textAlign: 'right',
-  },
-  colOrders: {
-    flex: 1,
-    textAlign: 'center',
-  },
-  revenueText: {
-    color: '#34c759',
-  },
-  spendingText: {
-    color: '#ff3b30',
-  },
-  netRevenueText: {
-    color: '#007AFF',
-    fontWeight: '700',
-  },
-  skeletonRow: {
-    height: 44,
-    marginVertical: 4,
-    borderRadius: 6,
-  },
-  errorContainer: {
-    padding: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  errorText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#ff3b30',
-    textAlign: 'center',
-  },
-  emptyContainer: {
-    padding: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyText: {
-    marginTop: 16,
-    fontSize: 16,
-  },
-  paginationContainer: {
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  infoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingBottom: 24,
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 13,
-    fontStyle: 'italic',
+  printButton: {
+    borderRadius: 12,
+    paddingVertical: 4,
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
 });

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Laporan Pendapatan - Point of Sale</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #fff;
+            padding: 30px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 3px solid #3b82f6;
+            padding-bottom: 20px;
+        }
+        
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #3b82f6;
+            margin-bottom: 10px;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            color: #1f2937;
+            margin-bottom: 10px;
+        }
+        
+        .period-info {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .period-info h3 {
+            color: #374151;
+            margin-bottom: 5px;
+        }
+        
+        .period-info p {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .summary-card {
+            background: #fff;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .summary-card.revenue {
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+        
+        .summary-card.spending {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+        
+        .summary-card.net-revenue {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+        
+        .summary-card.orders {
+            border-color: #f97316;
+            background: #fff7ed;
+        }
+        
+        .summary-card.average {
+            border-color: #6b7280;
+            background: #f9fafb;
+        }
+        
+        .card-title {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .card-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        
+        .revenue .card-value {
+            color: #059669;
+        }
+        
+        .spending .card-value {
+            color: #dc2626;
+        }
+        
+        .net-revenue .card-value {
+            color: #2563eb;
+        }
+        
+        .orders .card-value {
+            color: #ea580c;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        @media print {
+            body {
+                padding: 20px;
+            }
+            
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .summary-card {
+                break-inside: avoid;
+            }
+            
+            .header, .period-info, .footer {
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">📊 Point of Sale</div>
+        <h1>Laporan Pendapatan</h1>
+        <p>Dicetak pada: {{currentDate}}</p>
+    </div>
+    
+    <div class="period-info">
+        <h3>Periode Laporan</h3>
+        <p>{{periodText}}</p>
+    </div>
+    
+    <div class="summary-grid">
+        <div class="summary-card revenue">
+            <div class="card-title">Pendapatan Kotor</div>
+            <div class="card-value">{{totalRevenue}}</div>
+        </div>
+        
+        <div class="summary-card spending">
+            <div class="card-title">Total Pengeluaran</div>
+            <div class="card-value">{{totalSpending}}</div>
+        </div>
+        
+        <div class="summary-card net-revenue">
+            <div class="card-title">Pendapatan Bersih</div>
+            <div class="card-value">{{netRevenue}}</div>
+        </div>
+        
+        <div class="summary-card orders">
+            <div class="card-title">Total Transaksi</div>
+            <div class="card-value">{{totalOrders}}</div>
+        </div>
+        
+        <div class="summary-card average">
+            <div class="card-title">Rata-rata Transaksi</div>
+            <div class="card-value">{{averageOrderValue}}</div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>
+            Laporan ini dibuat secara otomatis oleh sistem Point of Sale<br>
+            © {{year}} Point of Sale App - Semua hak cipta dilindungi
+        </p>
+    </div>
+</body>
+</html>
