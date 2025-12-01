@@ -41,13 +41,17 @@ function CustomDrawerContent(props: any) {
     ]);
   };
 
+  // dynamic styles derived from theme so light mode colors look correct
+  const borderColor = Colors[colorScheme ?? 'light'].icon;
+  const titleColor = Colors[colorScheme ?? 'light'].text;
+
   return (
     // Wrap scroll + footer in a container so the footer can be static at the bottom
     <View style={{ flex: 1 }}>
-      <View style={styles.logoContainer}>
-        <Image source={require('@/assets/logo.png')} style={styles.logo} resizeMode="contain" />
-        <Text style={styles.marqueeText}>Warung Anggoro</Text>
-      </View>
+      <View style={[styles.logoContainer, { borderBottomColor: borderColor }] }>
+          <Image source={require('@/assets/logo.png')} style={styles.logo} resizeMode="contain" />
+          <Text style={[styles.marqueeText, { color: titleColor }]}>Warung Anggoro</Text>
+        </View>
       <DrawerContentScrollView {...props} contentContainerStyle={{ flexGrow: 1 }}>
         <DrawerItem
           label="Kasir"
@@ -139,7 +143,7 @@ function CustomDrawerContent(props: any) {
       </DrawerContentScrollView>
 
       {/* Logout sekarang berada di luar DrawerContentScrollView sehingga menempel di bawah */}
-      <View style={styles.logoutContainer}>
+      <View style={[styles.logoutContainer, { borderTopColor: borderColor }] }>
         <DrawerItem
           label="Logout"
           // selalu gunakan warna destruktif
@@ -173,7 +177,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#e6e6e6',
+    // color is provided dynamically by theme
     textAlign: 'left',
   },
   dropdownHeader: {
@@ -207,7 +211,7 @@ const styles = StyleSheet.create({
   // Adjusted logoutContainer style
   logoutContainer: {
     borderTopWidth: 1,
-    borderTopColor: '#e6e6e6',
+    borderTopColor: 'transparent',
     paddingTop: 8,
     paddingBottom: 16,
     alignSelf: 'stretch',
