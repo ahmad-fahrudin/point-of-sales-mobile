@@ -4,7 +4,7 @@
     "slug": "warung",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/icon-square.png",
     "scheme": "warung",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -13,8 +13,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/favicon.png",
-        "monochromeImage": "./assets/images/favicon.png"
+        "foregroundImage": "./assets/images/favicon-square.png",
+        "monochromeImage": "./assets/images/favicon-square.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -22,7 +22,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon-square.png"
     },
     "plugins": [
       "expo-router",
@@ -32,7 +32,7 @@
           "image": "./assets/logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "transparent"
+          "backgroundColor": "#00000000"
         }
       ],
       "expo-web-browser"
@@ -46,6 +46,10 @@
       "eas": {
         "projectId": "b67e5acb-b909-4956-b182-e3233fd15fb8"
       }
+    }
+    ,
+    "androidStatusBar": {
+      "backgroundColor": "#00000000"
     }
   }
 }
