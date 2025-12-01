@@ -62,6 +62,7 @@ export default function OrderDetailScreen() {
       cash: 'Tunai',
       card: 'Kartu',
       qris: 'QRIS',
+      credit: 'Kredit/Utang',
     };
     return labels[method] || method;
   };
@@ -230,6 +231,45 @@ export default function OrderDetailScreen() {
                   Rp {order.change.toLocaleString('id-ID')}
                 </ThemedText>
               </View>
+            </>
+          )}
+
+          {order.paymentMethod === 'credit' && order.creditInfo && (
+            <>
+              <View style={[styles.divider, { backgroundColor: dividerColor }]} />
+
+              <View style={styles.summaryRow}>
+                <ThemedText style={styles.summaryLabel}>Sudah Dibayar:</ThemedText>
+                <ThemedText style={[styles.summaryValue, { color: '#34c759' }]}>
+                  Rp {order.creditInfo.totalPaid.toLocaleString('id-ID')}
+                </ThemedText>
+              </View>
+
+              <View style={styles.summaryRow}>
+                <ThemedText style={styles.summaryLabel}>Sisa Utang:</ThemedText>
+                <ThemedText style={[styles.summaryValue, { color: order.creditInfo.isPaid ? '#34c759' : '#ff9500', fontWeight: '800' }]}>
+                  {order.creditInfo.isPaid ? 'LUNAS' : `Rp ${order.creditInfo.remainingDebt.toLocaleString('id-ID')}`}
+                </ThemedText>
+              </View>
+
+              {order.creditInfo.paymentHistory.length > 0 && (
+                <>
+                  <View style={[styles.divider, { backgroundColor: dividerColor }]} />
+                  <ThemedText style={[styles.summaryLabel, { marginBottom: 8, fontSize: 13, fontWeight: '700', textTransform: 'uppercase' }]}>
+                    Riwayat Pembayaran:
+                  </ThemedText>
+                  {order.creditInfo.paymentHistory.map((payment, index) => (
+                    <View key={payment.paymentId} style={[styles.summaryRow, { paddingVertical: 6 }]}>
+                      <ThemedText style={[styles.summaryLabel, { fontSize: 13 }]}>
+                        {formatDate(payment.paymentDate)} - {getPaymentMethodLabel(payment.paymentMethod)}
+                      </ThemedText>
+                      <ThemedText style={[styles.summaryValue, { fontSize: 13 }]}>
+                        Rp {payment.amount.toLocaleString('id-ID')}
+                      </ThemedText>
+                    </View>
+                  ))}
+                </>
+              )}
             </>
           )}
         </View>

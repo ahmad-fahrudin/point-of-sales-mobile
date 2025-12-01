@@ -30,7 +30,7 @@ export default function OrdersScreen() {
   const { cartItems, updateQuantity, removeFromCart, clearCart } = useCart();
 
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'qris'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'qris' | 'credit'>('cash');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -51,28 +51,56 @@ export default function OrdersScreen() {
     const totalAmount = getTotalAmount();
     const paymentAmountNum = parseFloat(paymentAmount) || 0;
 
+    // Validation for cash payment
     if (paymentMethod === 'cash' && paymentAmountNum < totalAmount) {
       Alert.alert('Pembayaran Tidak Cukup', 'Jumlah pembayaran kurang dari total');
+      return;
+    }
+
+    // Validation for credit payment - customer name is required
+    if (paymentMethod === 'credit' && !customerName.trim()) {
+      Alert.alert('Nama Pelanggan Wajib', 'Untuk pembayaran kredit, nama pelanggan harus diisi');
+      return;
+    }
+
+    // Validation for credit payment - payment amount cannot exceed total
+    if (paymentMethod === 'credit' && paymentAmountNum > totalAmount) {
+      Alert.alert('Pembayaran Berlebih', 'Jumlah pembayaran tidak boleh melebihi total');
       return;
     }
 
     setProcessing(true);
 
     try {
+      let finalPaymentAmount = totalAmount;
+      let changeAmount = 0;
+
+      if (paymentMethod === 'cash') {
+        finalPaymentAmount = paymentAmountNum;
+        changeAmount = paymentAmountNum - totalAmount;
+      } else if (paymentMethod === 'credit') {
+        finalPaymentAmount = paymentAmountNum;
+        changeAmount = 0;
+      }
+
       const response = await orderService.create({
         items: cartItems,
         totalAmount,
         paymentMethod,
-        paymentAmount: paymentMethod === 'cash' ? paymentAmountNum : totalAmount,
-        change: paymentMethod === 'cash' ? paymentAmountNum - totalAmount : 0,
+        paymentAmount: finalPaymentAmount,
+        change: changeAmount,
         customerName: customerName.trim(),
       });
 
       if (response.success && response.data) {
+        const successMessage = paymentMethod === 'credit' 
+          ? `Pesanan kredit berhasil dibuat. Sisa utang: Rp ${(totalAmount - paymentAmountNum).toLocaleString('id-ID')}`
+          : 'Pesanan telah berhasil dibuat';
+
         Toast.show({
           type: 'success',
           text1: 'Transaksi Berhasil',
-          text2: 'Pesanan telah berhasil dibuat',
+          text2: successMessage,
         });
 
         // Reset form
@@ -156,6 +184,7 @@ export default function OrdersScreen() {
   const paymentOptions = [
     { label: 'Tunai', value: 'cash' },
     { label: 'QRIS', value: 'qris' },
+    { label: 'Kredit/Utang', value: 'credit' },
   ];
 
   return (
@@ -238,7 +267,9 @@ export default function OrdersScreen() {
                 </View>
 
                 <View style={styles.modalSection}>
-                  <ThemedText style={styles.label}>Nama Pelanggan (Opsional)</ThemedText>
+                  <ThemedText style={styles.label}>
+                    Nama Pelanggan {paymentMethod === 'credit' && '(Wajib untuk Kredit)'}
+                  </ThemedText>
                   <Input
                     placeholder="Masukkan nama pelanggan"
                     value={customerName}
@@ -250,26 +281,39 @@ export default function OrdersScreen() {
                   <ThemedText style={styles.label}>Metode Pembayaran</ThemedText>
                   <Select
                     value={paymentMethod}
-                    onValueChange={(value) => setPaymentMethod(value as 'cash' | 'card' | 'qris')}
+                    onValueChange={(value) => setPaymentMethod(value as 'cash' | 'card' | 'qris' | 'credit')}
                     options={paymentOptions}
                   />
                 </View>
 
-                {paymentMethod === 'cash' && (
+                {(paymentMethod === 'cash' || paymentMethod === 'credit') && (
                   <View style={styles.modalSection}>
-                    <ThemedText style={styles.label}>Jumlah Bayar</ThemedText>
+                    <ThemedText style={styles.label}>
+                      {paymentMethod === 'cash' ? 'Jumlah Bayar' : 'Uang Muka (Opsional)'}
+                    </ThemedText>
                     <Input
-                      placeholder="Masukkan jumlah uang"
+                      placeholder={paymentMethod === 'cash' ? 'Masukkan jumlah uang' : 'Masukkan uang muka (boleh kosong)'}
                       value={paymentAmount}
                       onChangeText={setPaymentAmount}
                       keyboardType="numeric"
                       leftIcon={<ThemedText>Rp</ThemedText>}
                     />
-                    {paymentAmount && parseFloat(paymentAmount) >= getTotalAmount() && (
+                    {paymentMethod === 'cash' && paymentAmount && parseFloat(paymentAmount) >= getTotalAmount() && (
                       <View style={styles.changeContainer}>
                         <ThemedText style={styles.changeLabel}>Kembalian:</ThemedText>
                         <ThemedText style={styles.changeAmount}>
                           Rp {(parseFloat(paymentAmount) - getTotalAmount()).toLocaleString('id-ID')}
+                        </ThemedText>
+                      </View>
+                    )}
+                    {paymentMethod === 'credit' && (
+                      <View style={[styles.changeContainer, { 
+                        backgroundColor: colorScheme === 'dark' ? 'rgba(255, 149, 0, 0.12)' : 'rgba(255, 149, 0, 0.08)',
+                        borderColor: colorScheme === 'dark' ? 'rgba(255, 149, 0, 0.3)' : 'rgba(255, 149, 0, 0.2)',
+                      }]}>
+                        <ThemedText style={styles.changeLabel}>Sisa Utang:</ThemedText>
+                        <ThemedText style={[styles.changeAmount, { color: '#ff9500' }]}>
+                          Rp {(getTotalAmount() - (parseFloat(paymentAmount) || 0)).toLocaleString('id-ID')}
                         </ThemedText>
                       </View>
                     )}

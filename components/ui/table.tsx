@@ -26,7 +26,8 @@ export interface TableAction<T> {
 interface TableProps<T> {
   columns: TableColumn<T>[];
   data: T[];
-  actions?: TableAction<T>[];
+  // Actions can now be a static array (applied to every row) or a function returning actions per row
+  actions?: TableAction<T>[] | ((item: T) => TableAction<T>[]);
   loading?: boolean;
   error?: string;
   emptyMessage?: string;
@@ -113,7 +114,10 @@ export function Table<T>({
 
   const hasActiveFilters = searchTerm !== '' || startDate !== null || endDate !== null;
 
-  const renderItem = ({ item }: { item: T }) => (
+  const renderItem = ({ item }: { item: T }) => {
+    const rowActions = typeof actions === 'function' ? actions(item) : actions;
+
+    return (
     <View style={[styles.tableRow, { borderBottomColor: borderColor, backgroundColor: cardBg }]}>
       {columns.map((column) => {
         const width = column.width;
@@ -136,10 +140,10 @@ export function Table<T>({
           </View>
         );
       })}
-      {actions && actions.length > 0 && (
+      {rowActions && rowActions.length > 0 && (
         <View style={styles.actionCell}>
           <View style={styles.actionButtons}>
-            {actions.map((action, index) => (
+            {rowActions.map((action, index) => (
               <Pressable
                 key={index}
                 style={styles.actionButton}
@@ -152,7 +156,8 @@ export function Table<T>({
         </View>
       )}
     </View>
-  );
+    );
+  };
 
   const renderHeader = () => (
     <View style={[styles.tableHeader, { borderBottomColor: borderColor, backgroundColor: cardBg }]}>
@@ -171,7 +176,7 @@ export function Table<T>({
           </View>
         );
       })}
-      {actions && actions.length > 0 && (
+      {(typeof actions === 'function' || (Array.isArray(actions) && actions.length > 0)) && (
         <View style={styles.actionCell}>
           <ThemedText style={styles.headerText}>Aksi</ThemedText>
         </View>

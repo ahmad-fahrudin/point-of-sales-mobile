@@ -110,7 +110,15 @@ function CustomDrawerContent(props: any) {
           icon={({ color }) => <MaterialCommunityIcons size={28} name="receipt" color={color} />}
           onPress={() => router.push('/(drawer)/orders/history')}
           activeTintColor={activeColor}
-          focused={pathname.includes('/orders/history')}
+          focused={pathname.includes('/orders/history') && !pathname.includes('/orders/history-utang')}
+        />
+
+        <DrawerItem
+          label="Riwayat Utang"
+          icon={({ color }) => <MaterialCommunityIcons size={28} name="credit-card-clock" color={color} />}
+          onPress={() => router.push('/(drawer)/orders/history-utang')}
+          activeTintColor={activeColor}
+          focused={pathname.includes('/orders/history-utang')}
         />
 
         <DrawerItem
@@ -327,6 +335,15 @@ export default function DrawerLayout() {
             title: 'Riwayat Pesanan',
             drawerLabel: 'Riwayat Pesanan',
             drawerIcon: ({ color }) => <MaterialCommunityIcons size={28} name="receipt" color={color} />,
+            headerShown: true,
+          }}
+        />
+        <Drawer.Screen
+          name="orders/history-utang"
+          options={{
+            title: 'Riwayat Utang',
+            drawerLabel: 'Riwayat Utang',
+            drawerIcon: ({ color }) => <MaterialCommunityIcons size={28} name="credit-card-clock" color={color} />,
             headerShown: true,
           }}
         />

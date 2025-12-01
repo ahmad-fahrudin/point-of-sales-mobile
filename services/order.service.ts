@@ -38,13 +38,40 @@ export const orderService = {
         createdAt: new Date().toISOString(),
       };
 
+      // If payment method is credit, initialize credit info
+      if (input.paymentMethod === 'credit') {
+        const remainingDebt = input.totalAmount - input.paymentAmount;
+        const creditInfo: any = {
+          totalPaid: input.paymentAmount,
+          remainingDebt: remainingDebt,
+          paymentHistory: input.paymentAmount > 0 ? [{
+            paymentId: `payment_${Date.now()}`,
+            amount: input.paymentAmount,
+            paymentDate: new Date().toISOString(),
+            paymentMethod: 'cash', // Default first payment as cash
+            note: 'Pembayaran awal',
+          }] : [],
+          isPaid: remainingDebt <= 0,
+        };
+
+        // Only add lastPaymentDate if there was an initial payment
+        if (input.paymentAmount > 0) {
+          creditInfo.lastPaymentDate = new Date().toISOString();
+        }
+
+        data.creditInfo = creditInfo;
+      }
+
       const docRef = await addDoc(collection(db, 'orders'), data);
 
       // Update product stock for each item
       await this.updateProductStock(input.items);
 
-      // Update daily revenue record
-      await this.updateDailyRevenue(input.totalAmount);
+      // Update daily revenue record (only for paid amount)
+      const revenueAmount = input.paymentMethod === 'credit' ? input.paymentAmount : input.totalAmount;
+      if (revenueAmount > 0) {
+        await this.updateDailyRevenue(revenueAmount);
+      }
 
       return {
         success: true,
@@ -253,6 +280,182 @@ export const orderService = {
   },
 
   /**
+   * Add payment to credit order
+   */
+  async addPayment(orderId: string, amount: number, paymentMethod: 'cash' | 'card' | 'qris', note?: string): Promise<ApiResponse<void>> {
+    try {
+      const orderRef = doc(db, 'orders', orderId);
+      const orderSnap = await getDoc(orderRef);
+
+      if (!orderSnap.exists()) {
+        return {
+          success: false,
+          error: 'Pesanan tidak ditemukan',
+        };
+      }
+
+      const orderData = orderSnap.data() as FirestoreOrder;
+
+      if (orderData.paymentMethod !== 'credit') {
+        return {
+          success: false,
+          error: 'Pesanan ini bukan pesanan kredit',
+        };
+      }
+
+      if (!orderData.creditInfo) {
+        return {
+          success: false,
+          error: 'Data kredit tidak ditemukan',
+        };
+      }
+
+      if (orderData.creditInfo.isPaid) {
+        return {
+          success: false,
+          error: 'Utang sudah lunas',
+        };
+      }
+
+      if (amount > orderData.creditInfo.remainingDebt) {
+        return {
+          success: false,
+          error: `Jumlah pembayaran melebihi sisa utang (Rp ${orderData.creditInfo.remainingDebt.toLocaleString('id-ID')})`,
+        };
+      }
+
+      // Create new payment record
+      const newPayment = {
+        paymentId: `payment_${Date.now()}`,
+        amount: amount,
+        paymentDate: new Date().toISOString(),
+        paymentMethod: paymentMethod,
+        note: note || '',
+      };
+
+      // Calculate new totals
+      const newTotalPaid = orderData.creditInfo.totalPaid + amount;
+      const newRemainingDebt = orderData.totalAmount - newTotalPaid;
+      const isPaid = newRemainingDebt <= 0;
+
+      // Update order with new payment
+      await updateDoc(orderRef, {
+        'creditInfo.totalPaid': newTotalPaid,
+        'creditInfo.remainingDebt': newRemainingDebt,
+        'creditInfo.isPaid': isPaid,
+        'creditInfo.lastPaymentDate': new Date().toISOString(),
+        'creditInfo.paymentHistory': [
+          ...orderData.creditInfo.paymentHistory,
+          newPayment,
+        ],
+      });
+
+      // Update daily revenue for this payment
+      await this.updateDailyRevenue(amount);
+
+      return {
+        success: true,
+      };
+    } catch (error) {
+      console.error('Error adding payment:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Gagal menambahkan pembayaran',
+      };
+    }
+  },
+
+  /**
+   * Get all credit orders
+   */
+  async getCreditOrders(includeFullyPaid: boolean = false): Promise<ApiResponse<Order[]>> {
+    try {
+      // Simple query - only filter by paymentMethod
+      // This only needs a single-field index on paymentMethod
+      const q = query(
+        collection(db, 'orders'),
+        where('paymentMethod', '==', 'credit')
+      );
+
+      const snapshot = await getDocs(q);
+
+      let orders: Order[] = snapshot.docs.map((doc) => ({
+        orderId: doc.id,
+        ...(doc.data() as FirestoreOrder),
+      }));
+
+      // Filter by isPaid status on client-side
+      if (!includeFullyPaid) {
+        orders = orders.filter(order => !order.creditInfo?.isPaid);
+      }
+
+      // Sort by createdAt descending on client-side
+      orders.sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA;
+      });
+
+      return {
+        success: true,
+        data: orders,
+      };
+    } catch (error) {
+      console.error('Error fetching credit orders:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Gagal memuat data utang',
+      };
+    }
+  },
+
+  /**
+   * Subscribe to real-time credit order updates
+   */
+  subscribeCreditOrders(
+    includeFullyPaid: boolean,
+    onUpdate: (orders: Order[]) => void,
+    onError: (error: string) => void
+  ): () => void {
+    // Simple query - only filter by paymentMethod
+    // This only needs a single-field index on paymentMethod
+    const q = query(
+      collection(db, 'orders'),
+      where('paymentMethod', '==', 'credit')
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot: QuerySnapshot<DocumentData>) => {
+        let orders: Order[] = snapshot.docs.map((doc) => ({
+          orderId: doc.id,
+          ...(doc.data() as FirestoreOrder),
+        }));
+
+        // Filter by isPaid status on client-side
+        if (!includeFullyPaid) {
+          orders = orders.filter(order => !order.creditInfo?.isPaid);
+        }
+
+        // Sort by createdAt descending on client-side
+        orders.sort((a, b) => {
+          const dateA = new Date(a.createdAt).getTime();
+          const dateB = new Date(b.createdAt).getTime();
+          return dateB - dateA;
+        });
+
+        onUpdate(orders);
+      },
+      (error) => {
+        console.error('Error in credit orders subscription:', error);
+        onError(error.message);
+      }
+    );
+
+    return unsubscribe;
+  },
+
+  /**
    * Print receipt for an order
    */
   async printReceipt(order: Order): Promise<void> {
@@ -321,6 +524,7 @@ export const orderService = {
           cash: 'Tunai',
           card: 'Kartu',
           qris: 'QRIS',
+          credit: 'Kredit/Utang',
         };
         return labels[method] || method;
       };
