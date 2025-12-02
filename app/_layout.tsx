@@ -1,14 +1,14 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack, useRouter, useSegments } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import 'react-native-reanimated';
-import Toast from 'react-native-toast-message';
-
 import { auth } from '@/config/firebase';
 import { CartProvider } from '@/hooks/use-cart-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { onAuthStateChanged } from 'firebase/auth';
+import { useEffect, useState } from 'react';
+import 'react-native-reanimated';
+import Toast from 'react-native-toast-message';
 
 export const unstable_settings = {
   initialRouteName: 'auth',
@@ -41,8 +41,27 @@ export default function RootLayout() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setIsLoading(false);
+      if (user) {
+        setUser(user);
+        setIsLoading(false);
+      } else {
+        // If Firebase has no user (e.g. auth not persisted), try restoring from AsyncStorage
+        (async () => {
+          try {
+            const raw = await AsyncStorage.getItem('persistedUser');
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              setUser(parsed);
+            } else {
+              setUser(null);
+            }
+          } catch (e) {
+            setUser(null);
+          } finally {
+            setIsLoading(false);
+          }
+        })();
+      }
     });
 
     return () => unsubscribe();

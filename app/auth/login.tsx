@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { auth } from '@/config/firebase';
 import { useGoogleSignIn } from '@/hooks/use-google-signin';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useState } from 'react';
@@ -46,7 +47,14 @@ export default function LoginScreen() {
 
     try {
       setLoading(true);
-      await signInWithEmailAndPassword(auth, email, password);
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      try {
+        const u = cred.user;
+        const persisted = { uid: u.uid, email: u.email, displayName: u.displayName };
+        await AsyncStorage.setItem('persistedUser', JSON.stringify(persisted));
+      } catch (e) {
+        // ignore storage errors
+      }
       // Navigation handled automatically by useProtectedRoute in _layout.tsx
     } catch (error: any) {
       console.error('Login error:', error);

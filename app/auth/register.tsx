@@ -3,6 +3,7 @@ import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { auth } from '@/config/firebase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { useState } from 'react';
@@ -53,7 +54,14 @@ export default function RegisterScreen() {
 
     try {
       setLoading(true);
-      await createUserWithEmailAndPassword(auth, email, password);
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      try {
+        const u = cred.user;
+        const persisted = { uid: u.uid, email: u.email, displayName: u.displayName };
+        await AsyncStorage.setItem('persistedUser', JSON.stringify(persisted));
+      } catch (e) {
+        // ignore storage errors
+      }
       // Navigation handled automatically by useProtectedRoute in _layout.tsx
     } catch (error: any) {
       console.error('Register error:', error);

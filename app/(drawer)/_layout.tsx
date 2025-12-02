@@ -1,6 +1,7 @@
 import { auth } from '@/config/firebase';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DrawerContentScrollView, DrawerItem } from '@react-navigation/drawer';
 import { usePathname, useRouter } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
@@ -31,7 +32,16 @@ function CustomDrawerContent(props: any) {
         style: 'destructive',
         onPress: async () => {
           try {
+            // Remove persisted user first to avoid restore race in onAuthStateChanged
+            try {
+              await AsyncStorage.removeItem('persistedUser');
+            } catch (e) {
+              // ignore storage errors
+            }
+
             await signOut(auth);
+
+            // Navigate to login and ensure UI reflects logout
             router.replace('/auth/login');
           } catch (error) {
             Alert.alert('Error', 'Gagal logout. Silakan coba lagi.');
